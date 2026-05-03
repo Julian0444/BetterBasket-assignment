@@ -244,3 +244,37 @@ Verification:
 Blockers: none.
 
 Next suggested action: Phase 2 — IO and tolerant parsing. Create `betterbasket_matcher/io.py` with `load_store_a(path)` and `load_store_b(path)` that use `csv.DictReader`, validate numeric item_ids, quarantine malformed rows, and parse `item_info`, `sizing_comp`, and B `tags` tolerantly. Write `tests/test_io.py` driven by the mini fixtures. Expected interface: returns `(valid_rows, quarantined_rows)` for A and `validated_rows` for B.
+
+## Session - 2026-05-03 02:30 PDT
+
+Completed:
+
+- Phase 2: implemented IO and tolerant parsing in `betterbasket_matcher/io.py`.
+- Wrote `tests/test_io.py` first (TDD, 37 tests); confirmed import error before `io.py` existed.
+- Implemented all four public functions in `betterbasket_matcher/io.py`.
+- No normalization, taxonomy, retrieval, scoring, or pipeline logic was added.
+- Phase 1 fixtures were not modified.
+
+Changed files:
+
+- `betterbasket_matcher/io.py` (new)
+- `tests/test_io.py` (new)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Parser behavior summary:
+
+- `is_numeric_id(value)`: accepts only `^\d+$`; rejects empty, whitespace, pipes, letters, floats, negatives.
+- `parse_json_dict(value)`: returns the parsed dict for valid JSON objects; returns `{}` for blank, invalid JSON, or any non-dict JSON type (list, scalar, null, boolean, number).
+- `parse_tags(value)`: handles blank → `[]`, `{}` → `[]`, JSON list style `["a","b"]` via `ast.literal_eval`, Postgres brace style `{a,b}` and `{"a","b"}` via inner-split, comma-separated fallback for everything else. Strips whitespace and surrounding quotes from each tag.
+- `read_products(path, source)`: reads CSV via `csv.DictReader`; quarantines rows with non-numeric `item_id` (reason `non_numeric_item_id`) or blank `name` (reason `blank_name`); raises `ValueError` for source other than "A" or "B"; preserves all original row fields in quarantined rows.
+
+Verification:
+
+- `python3 -m pytest tests/test_io.py -v`: 37 passed (import error before io.py existed).
+- `python3 -m pytest`: 50 passed (37 IO + 12 sanity + 1 import contract).
+- mini_a: 1 quarantined row (item_id ` | Pack of 12`, reason `non_numeric_item_id`); 38 valid rows.
+- mini_b: 0 quarantined rows; 30 valid rows.
+
+Blockers: none.
+
+Next suggested action: Phase 3 — normalization. Create `betterbasket_matcher/normalize.py` with functions to normalize brand (detect private labels, infer brand from name prefix), extract category hierarchy from `item_info`, parse size and pack from name and `sizing_comp.size_user_friendly`, detect organic/form/storage/flavor signals, and build `retrieval_text`. Write `tests/test_normalize.py` driven by the mini fixtures and covering the edge cases in `expected_matches.csv`.
