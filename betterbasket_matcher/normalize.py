@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Iterable, Optional
 
 from betterbasket_matcher.io import parse_json_dict, parse_tags
 
@@ -12,7 +12,9 @@ from betterbasket_matcher.io import parse_json_dict, parse_tags
 # Private-label brand sets
 # ---------------------------------------------------------------------------
 
-_PRIVATE_LABEL_A: frozenset[str] = frozenset({
+# Canonical PL brands only. Variants like "equate extra" are matched via the
+# word-boundary prefix rule in _is_private_label_a, not added here.
+_PRIVATE_LABEL_A: frozenset = frozenset({
     "great value",
     "marketside",
     "freshness guaranteed",
@@ -21,6 +23,11 @@ _PRIVATE_LABEL_A: frozenset[str] = frozenset({
     "bettergoods",
     "sam s choice",
     "sams choice",
+    "parent s choice",
+    "parents choice",
+    "ol roy",
+    "special kitty",
+    "clear american",
 })
 
 # B is private-label when brand_norm == "wegmans" OR a tag signals it
@@ -121,7 +128,58 @@ def _normalize_brand(brand_raw: str) -> str:
 
 
 def _is_private_label_a(brand_norm: str) -> bool:
-    return brand_norm in _PRIVATE_LABEL_A
+    """True if brand_norm is a PL or starts with '{pl} ' (word-boundary prefix)."""
+    if not brand_norm:
+        return False
+    return any(
+        brand_norm == pl or brand_norm.startswith(pl + " ")
+        for pl in _PRIVATE_LABEL_A
+    )
+
+
+def _normalize_name_for_inference(name: str) -> str:
+    """Lowercase, hyphens/apostrophes -> space, collapse whitespace."""
+    if not name:
+        return ""
+    s = name.lower()
+    s = re.sub(r"[\-']", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _match_canonical_prefix(text: str, candidates: Iterable[str]) -> Optional[str]:
+    """Return the longest candidate that equals text or is a word-boundary prefix."""
+    matches = [c for c in candidates if c and (text == c or text.startswith(c + " "))]
+    if not matches:
+        return None
+    return max(matches, key=len)
+
+
+def infer_brand_from_name(
+    name: str,
+    known_brands: Optional[Iterable[str]] = None,
+) -> tuple:
+    """Return (canonical_brand, was_inferred).
+
+    Tries the built-in private-label set first (longest word-boundary prefix
+    match), then known_brands if provided. National-brand inference never
+    fires when known_brands is None.
+    """
+    norm = _normalize_name_for_inference(name)
+    if not norm:
+        return (None, False)
+
+    pl_match = _match_canonical_prefix(norm, _PRIVATE_LABEL_A)
+    if pl_match:
+        return (pl_match, True)
+
+    if known_brands:
+        kb_norm = {b.strip().lower() for b in known_brands if b}
+        kb_match = _match_canonical_prefix(norm, kb_norm)
+        if kb_match:
+            return (kb_match, True)
+
+    return (None, False)
 
 
 def _is_private_label_b(brand_norm: str, tags: list[str]) -> bool:
@@ -256,6 +314,71 @@ def _is_organic_a(row: dict, item_info: dict) -> bool:
     return False
 
 
+# Attribute normalization. None means "unknown / not detected" — Phase 6 hard
+# rules must treat None as no-mismatch rather than rejecting.
+
+def _normalize_attribute(value) -> Optional[str]:
+    if isinstance(value, str):
+        s = value.strip().lower()
+        return s if s else None
+    return None
+
+
+_FROZEN_RE = re.compile(r"\bfrozen\b", re.IGNORECASE)
+_REFRIG_RE = re.compile(r"\brefrigerate(?:d)?\b", re.IGNORECASE)
+
+_FORM_PATTERNS = (
+    (re.compile(r"\bwhole\s+bean\b", re.IGNORECASE), "whole_bean"),
+    (re.compile(r"\bpowder(?:ed)?\b", re.IGNORECASE), "powder"),
+    (re.compile(r"\bliquid\b", re.IGNORECASE), "liquid"),
+    (re.compile(r"\bsliced\b", re.IGNORECASE), "sliced"),
+    (re.compile(r"\bshredded\b", re.IGNORECASE), "shredded"),
+    (re.compile(r"\bground\b", re.IGNORECASE), "ground"),
+)
+
+_FLAVOR_PATTERNS = (
+    (re.compile(r"\bvanilla\b", re.IGNORECASE), "vanilla"),
+    (re.compile(r"\bchocolate\b", re.IGNORECASE), "chocolate"),
+)
+
+
+def _storage_from_name(name: str) -> Optional[str]:
+    if not name:
+        return None
+    if _FROZEN_RE.search(name):
+        return "frozen"
+    if _REFRIG_RE.search(name):
+        return "refrigerated"
+    return None
+
+
+def _form_from_name(name: str) -> Optional[str]:
+    if not name:
+        return None
+    for pat, label in _FORM_PATTERNS:
+        if pat.search(name):
+            return label
+    return None
+
+
+def _flavor_from_name(name: str) -> Optional[str]:
+    if not name:
+        return None
+    for pat, label in _FLAVOR_PATTERNS:
+        if pat.search(name):
+            return label
+    return None
+
+
+def _storage_from_tags(tags) -> Optional[str]:
+    tag_set = {t.strip().lower() for t in tags or []}
+    if "frozen" in tag_set:
+        return "frozen"
+    if "refrigerated" in tag_set:
+        return "refrigerated"
+    return None
+
+
 def _is_organic_b(row: dict, item_info: dict, tags: list[str]) -> bool:
     is_org_raw = row.get("is_organic", "")
     if str(is_org_raw).strip().lower() in ("true", "1", "yes"):
@@ -296,6 +419,12 @@ def _build_core_name(name: str, brand_norm: str) -> str:
     return text
 
 
+def _fmt_num(x) -> str:
+    if isinstance(x, float) and x.is_integer():
+        return str(int(x))
+    return str(x)
+
+
 def _build_retrieval_text(
     brand_norm: str,
     is_private_label: bool,
@@ -317,12 +446,14 @@ def _build_retrieval_text(
     if core_name:
         parts.append(core_name)
 
-    # Size string
+    # Size string. Drop trailing ".0" on integer-valued floats so we emit
+    # "8oz" rather than "8.0oz".
     if size.unit and size.unit_size is not None:
+        us = _fmt_num(size.unit_size)
         if size.pack_count > 1:
-            parts.append(f"{size.pack_count}x{size.unit_size}{size.unit}")
+            parts.append(f"{size.pack_count}x{us}{size.unit}")
         else:
-            parts.append(f"{size.unit_size}{size.unit}")
+            parts.append(f"{us}{size.unit}")
 
     # Category tokens
     for cat in (category_0, category_1):
@@ -352,10 +483,19 @@ def normalize_product(row: dict, source: str) -> NormalizedProduct:
     item_info = parse_json_dict(row.get("item_info", ""))
     tags = parse_tags(row.get("tags", "")) if source == "B" else []
 
-    # Brand
+    # Brand. For A rows with blank brand_raw, fall back to canonical
+    # name-based inference against the private-label set so that, e.g.,
+    # "Great Value Corn on The Cob" with brand_raw="" is detected as PL
+    # and its brand token is suppressed in retrieval_text.
     brand_raw = row.get("brand_raw", "") or ""
     brand_norm = _normalize_brand(brand_raw)
-    brand_inferred = False  # inference from name not implemented yet
+    brand_inferred = False
+
+    if source == "A" and not brand_norm:
+        inferred, was_inferred = infer_brand_from_name(row.get("name", ""))
+        if inferred:
+            brand_norm = inferred
+            brand_inferred = was_inferred
 
     if source == "A":
         is_pl = _is_private_label_a(brand_norm)
@@ -374,10 +514,24 @@ def normalize_product(row: dict, source: str) -> NormalizedProduct:
     else:
         is_organic = _is_organic_b(row, item_info, tags)
 
-    # Other attributes
-    storage_type = item_info.get("storage_type") or None
-    form = item_info.get("form") or None
-    flavor = item_info.get("flavor") or None
+    # Other attributes. Normalize to lowercase strings; cascade to a
+    # conservative name-token fallback (and B tag fallback for storage)
+    # when item_info is missing or malformed. None means "unknown".
+    name_for_fallback = row.get("name", "") or ""
+
+    storage_type = _normalize_attribute(item_info.get("storage_type"))
+    if storage_type is None:
+        storage_type = _storage_from_name(name_for_fallback)
+    if storage_type is None and source == "B":
+        storage_type = _storage_from_tags(tags)
+
+    form = _normalize_attribute(item_info.get("form"))
+    if form is None:
+        form = _form_from_name(name_for_fallback)
+
+    flavor = _normalize_attribute(item_info.get("flavor"))
+    if flavor is None:
+        flavor = _flavor_from_name(name_for_fallback)
 
     # Categories
     category_0, category_1, category_2 = _extract_categories(item_info)

@@ -8,7 +8,13 @@ from pathlib import Path
 import pytest
 
 from betterbasket_matcher.io import read_products
-from betterbasket_matcher.normalize import normalize_product, NormalizedProduct, SizeInfo
+from betterbasket_matcher.normalize import (
+    NormalizedProduct,
+    SizeInfo,
+    _is_private_label_a,
+    infer_brand_from_name,
+    normalize_product,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -347,3 +353,200 @@ class TestPdfRegression:
         assert pa.size.pack_count == pb.size.pack_count
         assert pa.size.unit_size == pytest.approx(pb.size.unit_size)
         assert pa.size.total_size == pytest.approx(pb.size.total_size)
+
+
+# ---------------------------------------------------------------------------
+# Phase 3-fix tests
+# ---------------------------------------------------------------------------
+
+def _synthetic_a_row(name, brand_raw="", item_info="", sizing_comp="", tags=""):
+    return {
+        "item_id": "1",
+        "name": name,
+        "brand_raw": brand_raw,
+        "item_info": item_info,
+        "sizing_comp": sizing_comp,
+        "tags": tags,
+        "is_organic": "",
+    }
+
+
+def _synthetic_b_row(name, brand_raw="", item_info="", sizing_comp="", tags=""):
+    return {
+        "item_id": "1",
+        "name": name,
+        "brand_raw": brand_raw,
+        "item_info": item_info,
+        "sizing_comp": sizing_comp,
+        "tags": tags,
+        "is_organic": "",
+    }
+
+
+# T1. Brand inference canonical contract
+class TestBrandInferenceCanonical:
+    def test_great_value(self):
+        assert infer_brand_from_name("Great Value Organic Tomato Sauce, 8 oz") == ("great value", True)
+
+    def test_equate_canonical_not_variant(self):
+        assert infer_brand_from_name("Equate Extra Strength Headache Relief") == ("equate", True)
+
+    def test_marketside_canonical_not_variant(self):
+        assert infer_brand_from_name("Marketside Fresh Caesar Salad Kit") == ("marketside", True)
+
+    def test_bettergoods_canonical_not_variant(self):
+        assert infer_brand_from_name("Bettergoods Organic Granola") == ("bettergoods", True)
+
+    def test_apostrophe_brand_normalized(self):
+        assert infer_brand_from_name("Ol' Roy Complete Nutrition Dog Food") == ("ol roy", True)
+
+    def test_national_inference_requires_known_brands(self):
+        assert infer_brand_from_name("Chobani Whole Milk Greek Yogurt") == (None, False)
+
+    def test_national_with_known_brands_set(self):
+        result = infer_brand_from_name("Chobani Whole Milk Greek Yogurt", known_brands={"chobani"})
+        assert result == ("chobani", True)
+
+    def test_unknown_brand_returns_none(self):
+        assert infer_brand_from_name("Random Unknown Brand Product") == (None, False)
+
+    def test_empty_name_returns_none(self):
+        assert infer_brand_from_name("") == (None, False)
+
+    def test_word_boundary_safety_greater_value(self):
+        assert infer_brand_from_name("Greater Value Snacks") == (None, False)
+
+
+# T2. Private-label prefix match with word boundary
+class TestPrivateLabelPrefixMatch:
+    @pytest.mark.parametrize("brand,expected", [
+        ("equate", True),
+        ("equate extra", True),
+        ("equate beauty", True),
+        ("marketside", True),
+        ("marketside fresh", True),
+        ("bettergoods", True),
+        ("bettergoods organic", True),
+        ("great value", True),
+        ("greater value", False),
+        ("equator", False),
+        ("ol roy", True),
+        ("special kitty", True),
+        ("parent s choice", True),
+        ("parents choice", True),
+        ("clear american", True),
+    ])
+    def test_membership(self, brand, expected):
+        assert _is_private_label_a(brand) is expected
+
+
+# T3. End-to-end inference for blank brand_raw + Great Value name
+class TestBlankBrandInferenceEndToEnd:
+    def test_great_value_corn_synthetic(self):
+        row = _synthetic_a_row(
+            name="Great Value Corn on The Cob",
+            brand_raw="",
+        )
+        p = normalize_product(row, "A")
+        assert p.brand_norm == "great value"
+        assert p.brand_inferred is True
+        assert p.is_private_label is True
+        assert "great value" not in p.core_name
+        assert "great value" not in p.retrieval_text
+
+
+# T4. Attribute normalization (item_info path, DEFECT 4)
+class TestAttributeItemInfoNormalization:
+    def test_uppercase_lowered(self):
+        row = _synthetic_a_row(
+            name="Whatever Product",
+            brand_raw="Brand",
+            item_info='{"storage_type":"FROZEN","form":"POWDER","flavor":"VANILLA"}',
+        )
+        p = normalize_product(row, "A")
+        assert p.storage_type == "frozen"
+        assert p.form == "powder"
+        assert p.flavor == "vanilla"
+
+    def test_non_string_value_returns_none(self):
+        row = _synthetic_a_row(
+            name="Whatever Product",
+            brand_raw="Brand",
+            item_info='{"storage_type":["AMBIENT"]}',
+        )
+        p = normalize_product(row, "A")
+        assert p.storage_type is None
+
+    def test_blank_string_returns_none(self):
+        row = _synthetic_a_row(
+            name="Whatever Product",
+            brand_raw="Brand",
+            item_info='{"storage_type":"   "}',
+        )
+        p = normalize_product(row, "A")
+        assert p.storage_type is None
+
+
+# T5. Conservative name-token / tag fallback (DEFECT 4)
+class TestAttributeNameFallback:
+    def test_storage_frozen_from_name(self):
+        row = _synthetic_a_row(name="Birds Eye Frozen Sweet Corn, 16 oz", brand_raw="Birds Eye")
+        p = normalize_product(row, "A")
+        assert p.storage_type == "frozen"
+
+    def test_form_powder_from_powdered(self):
+        row = _synthetic_a_row(name="Quaker Powdered Donut Mix", brand_raw="Quaker")
+        p = normalize_product(row, "A")
+        assert p.form == "powder"
+
+    def test_flavor_vanilla_from_name(self):
+        row = _synthetic_a_row(name="Haagen-Dazs Vanilla Ice Cream", brand_raw="Haagen-Dazs")
+        p = normalize_product(row, "A")
+        assert p.flavor == "vanilla"
+
+    def test_flavor_chocolate_from_name(self):
+        row = _synthetic_a_row(name="Hershey's Chocolate Syrup", brand_raw="Hershey's")
+        p = normalize_product(row, "A")
+        assert p.flavor == "chocolate"
+
+    def test_no_false_positives(self):
+        row = _synthetic_a_row(name="Plain Tomato Sauce", brand_raw="Brand")
+        p = normalize_product(row, "A")
+        assert p.storage_type is None
+        assert p.form is None
+        assert p.flavor is None
+
+    def test_b_storage_from_tags(self):
+        row = _synthetic_b_row(
+            name="Some Cold Item",
+            brand_raw="Brand",
+            item_info="{}",
+            tags='{"frozen"}',
+        )
+        p = normalize_product(row, "B")
+        assert p.storage_type == "frozen"
+
+
+# T6. Size formatting in retrieval_text (DEFECT 6)
+class TestRetrievalTextSizeFormat:
+    def test_integral_size_no_dot_zero(self, a_by_id):
+        # A 1929544: 8 oz integer-valued
+        p = normalize_product(a_by_id["1929544"], "A")
+        assert "8oz" in p.retrieval_text
+        assert "8.0oz" not in p.retrieval_text
+
+    def test_fractional_size_preserved(self, a_by_id):
+        # A 2197626: 5.3 oz fractional
+        p = normalize_product(a_by_id["2197626"], "A")
+        assert "5.3oz" in p.retrieval_text
+
+    def test_pack_x_integral_size(self):
+        row = _synthetic_b_row(
+            name="Cola 12 Pack 12 fl oz",
+            brand_raw="Coca-Cola",
+            sizing_comp='{"size_user_friendly":"12 x 12 fluid ounce"}',
+        )
+        p = normalize_product(row, "B")
+        # Lock format: "{pack}x{size}{unit}" with no .0 noise
+        assert "12x12fl oz" in p.retrieval_text
+        assert "12.0" not in p.retrieval_text

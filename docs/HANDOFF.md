@@ -316,3 +316,43 @@ Verification:
 - `python3 -m pytest`: 98 passed (48 normalize + 37 IO + 12 sanity + 1 import contract).
 
 Blockers: none.
+
+## Session - 2026-05-03 03:45 PDT
+
+Completed:
+
+- Phase 3-fix: closed six defects in `betterbasket_matcher/normalize.py` detected by cross-checking the implementation against `docs/audit_stats.json` and `docs/retrieval_probe_results.md`.
+- Wrote 38 new tests in `tests/test_normalize.py` first (TDD); confirmed they failed at collection (`ImportError: cannot import name 'infer_brand_from_name'`) before the implementation landed.
+- Implementation is narrow: no taxonomy, scope, retrieval, rules, scoring, pipeline, or LLM logic was introduced. Phase 1 fixtures and Phase 2 `io.py` were not modified.
+
+Changed files:
+
+- `betterbasket_matcher/normalize.py` (modified)
+- `tests/test_normalize.py` (modified)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Defect summary:
+
+- Defect 1 (`brand_inferred` hardcoded False) — added `infer_brand_from_name(name, known_brands=None)` returning `(canonical_brand, was_inferred)` and wired it into `normalize_product` for A rows with blank `brand_raw`. National-brand inference does not fire when `known_brands is None`.
+- Defect 2 (PL detection used exact-match) — rewrote `_is_private_label_a` as longest word-boundary prefix match (`brand_norm == pl OR brand_norm.startswith(pl + " ")`), so `equate extra`/`marketside fresh`/`bettergoods organic` resolve to PL while `equator`/`greater value` do not collide.
+- Defect 3 (PL set missing grocery brands) — extended `_PRIVATE_LABEL_A` with canonical entries `parent s choice`, `parents choice`, `ol roy`, `special kitty`, `clear american`. Variants stay out of the set; the prefix rule covers them.
+- Defect 4 (attributes raw + no fallback) — added `_normalize_attribute` (lowercase/strip; non-string → None) and a conservative name-token fallback for `storage_type` (frozen/refrigerated; "powdered" stems to "powder"), `form` (powder/liquid/sliced/shredded/ground/whole_bean), and `flavor` (vanilla/chocolate). For B rows, tags are an extra source for storage. None means "unknown / not detected".
+- Defect 5 (core_name brand strip with empty brand) — no separate code change required; once Defect 1 populates `brand_norm` for inferred-PL rows, the existing `text.startswith(brand_norm)` strip in `_build_core_name` handles the case. Locked by T3.
+- Defect 6 (size float noise `8.0oz`) — added `_fmt_num` and applied to both single and pack-x branches of size rendering in `_build_retrieval_text`. Integral floats render as `"8"`, fractional floats keep their decimal (`"5.3"`).
+
+Verification:
+
+- Baseline before changes: `python3 -m pytest` → 98 passed.
+- After tests added, before implementation: collection error (`ImportError: cannot import name 'infer_brand_from_name'`). Expected red.
+- After implementation: `python3 -m pytest tests/test_normalize.py` → 86 passed; `python3 -m pytest` → 136 passed (86 normalize + 37 IO + 12 sanity + 1 import contract). Net delta: +38 tests, all green.
+- `git diff --stat` confirms only `betterbasket_matcher/normalize.py` and `tests/test_normalize.py` changed; no fixtures, no `io.py`.
+
+Open design notes for Phase 6:
+
+- B `item_info.storage_type` is not a top key in `audit_stats`; B `storage_type` will usually be None unless the name or tag fallback fires. Phase 3 normalizes `item_info` attributes when present and applies a conservative name-token fallback for obvious storage/form/flavor signals. Phase 6 must still treat None as "unknown" (no mismatch fired) rather than rejecting.
+- A `item_info.storage_type` IS a top key (201,970 rows, 86.6% coverage), so the storage hard rule will be informative on the A side.
+- `infer_brand_from_name` accepts a `known_brands` set so Phase 6 (or a later phase) can pass a precomputed national-brand set when needed; calling without it preserves the conservative PL-only behavior.
+
+Blockers: none.
+
+Next suggested action: Phase 4 — taxonomy and scope. Create `betterbasket_matcher/taxonomy.py` with a `matchable_group` function and an `in_scope_a` predicate that excludes categories Wegmans cannot plausibly match. Drive it with the existing mini fixtures.
