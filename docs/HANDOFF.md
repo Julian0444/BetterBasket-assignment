@@ -277,4 +277,42 @@ Verification:
 
 Blockers: none.
 
-Next suggested action: Phase 3 — normalization. Create `betterbasket_matcher/normalize.py` with functions to normalize brand (detect private labels, infer brand from name prefix), extract category hierarchy from `item_info`, parse size and pack from name and `sizing_comp.size_user_friendly`, detect organic/form/storage/flavor signals, and build `retrieval_text`. Write `tests/test_normalize.py` driven by the mini fixtures and covering the edge cases in `expected_matches.csv`.
+Next suggested action: Phase 4 — taxonomy and scope filter. Create `betterbasket_matcher/taxonomy.py` with a `matchable_group` function that maps (category_0, category_1, category_2) to a shared group key, plus an `in_scope_a` predicate that returns False for categories Wegmans cannot plausibly match (home decor, automotive, etc.). Write `tests/test_taxonomy.py` driven by the mini fixtures.
+
+## Session - 2026-05-03 03:15 PDT
+
+Completed:
+
+- Phase 3: implemented normalization in `betterbasket_matcher/normalize.py`.
+- Wrote `tests/test_normalize.py` first (TDD, 48 tests); confirmed ImportError before `normalize.py` existed.
+- Implemented all normalization in `betterbasket_matcher/normalize.py`.
+- No taxonomy, retrieval, scoring, or pipeline logic was added.
+- Phase 1 and Phase 2 files were not modified.
+
+Changed files:
+
+- `betterbasket_matcher/normalize.py` (new)
+- `tests/test_normalize.py` (new)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Implementation summary:
+
+- `SizeInfo`: dataclass with `unit`, `unit_size`, `pack_count`, `total_size`.
+- `NormalizedProduct`: dataclass with all normalized attributes.
+- `normalize_product(row, source)`: main public entry point.
+- Brand normalization: lowercases and collapses whitespace; detects A private labels from a frozen set (`great value`, `marketside`, etc.); detects B private labels when `brand_norm == "wegmans"` or tags contain `wegmans brand`/`wegmans_brand`.
+- Size parsing A: strips `(N Pack)` prefix from name, extracts `N oz` / `N gallon` etc. via regex, falls back to `sizing_comp.size_user_friendly`.
+- Size parsing B: parses `sizing_comp.size_user_friendly`; handles `12 x 5.3 ounce` pack-x format and plain `8 ounce`.
+- Unit normalization: ounce/oz → oz; gallon/gal → gal; lb/pound → lb; g/gram → g; kg → kg; ml → ml; l/liter → l; ct/pk/count → ct; fl oz → fl oz.
+- Organic: A detected from name token "organic" or `item_info.is_organic`; B detected from `is_organic` column, `item_info.is_organic`, or `organic` tag.
+- Storage, form, flavor: passed through from `item_info`.
+- Categories: lowercased from `item_info.category_0/1/2`.
+- `core_name`: strips pack prefix, brand prefix, size tokens, container words, then collapses whitespace.
+- `retrieval_text`: brand (suppressed for private labels) + core_name + size_str + category tokens + attribute tokens, joined by single space with no leading/trailing whitespace.
+
+Verification:
+
+- `python3 -m pytest tests/test_normalize.py -v`: 48 passed (ImportError before normalize.py existed).
+- `python3 -m pytest`: 98 passed (48 normalize + 37 IO + 12 sanity + 1 import contract).
+
+Blockers: none.
