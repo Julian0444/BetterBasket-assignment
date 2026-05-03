@@ -1,0 +1,6 @@
+scikit-learn
+scipy
+pytest
+rank-bm25
+pyyaml
+openai

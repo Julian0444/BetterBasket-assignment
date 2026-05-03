@@ -1,0 +1,117 @@
+# ---------------------------------------------------------------------------
+# BetterBasket assignment .gitignore
+# ---------------------------------------------------------------------------
+# What is intentionally tracked:
+#   - README.md, solution.md, solutioneasyexplained.md, app.md
+#   - betterbasket_matcher/, scripts/, tests/
+#   - docs/ (dataset_audit.md, algorithm_recommendation.md, HANDOFF.md,
+#           audit_stats.json, retrieval_probe_results.json, and derived .md)
+#   - pytest.ini, requirements.txt
+#   - matches.csv and matches_audit.csv (pipeline deliverables, when produced)
+# ---------------------------------------------------------------------------
+
+# --- Agent workflow ---------------------------------------------------------
+# .claude/skills/ IS tracked on purpose so reviewers can see the Claude skills
+# used during development. Only local state (settings.local.json) is excluded.
+# .agents/ is a duplicate of .claude/skills/ and intentionally ignored.
+.agents/
+.claude/settings.local.json
+
+# --- IDE local state --------------------------------------------------------
+.idea/
+.vscode/
+*.code-workspace
+
+# --- BetterBasket assignment brief (do not redistribute) -------------------
+# Brackets are glob character classes in .gitignore, so escape them.
+\[BetterBasket\] Engineering Technical Assessment.pdf
+*Engineering Technical Assessment*.pdf
+
+# --- Python bytecode and build artifacts -----------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
+.wheel-cache/
+
+# --- Virtual environments --------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# --- Test / type-check / coverage caches -----------------------------------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# --- Jupyter / IPython (in case of scratch notebooks) ----------------------
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- OS cruft --------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Secrets and credentials (never commit these) --------------------------
+.env
+.env.*
+*.env
+openai_creds.yaml
+openai_creds.yml
+**/openai_creds.yaml
+**/openai_creds.yml
+*creds*.yaml
+*creds*.yml
+*credentials*.yaml
+*credentials*.yml
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# --- Large source datasets (live in ~/Downloads, never vendor them) --------
+grocery_store_a_items_final.csv
+grocery_store_b_items_final.csv
+*_items_final.csv
+data/raw/
+datasets/
+
+# --- Local pipeline scratch / logs -----------------------------------------
+*.log
+logs/
+tmp/
+.tmp/
+scratch/
+.scratch/
+out/local/
+runs/
+wandb/
+
+# --- Generated or ad-hoc output that is NOT the final deliverable ----------
+# (matches.csv and matches_audit.csv are deliberately NOT ignored.)
+*.bak
+*.swp
+*.swo
+*~

@@ -1,0 +1,3266 @@
+{
+  "bm25": {
+    "brand_included": {
+      "chobani_honey_yogurt": {
+        "expected_b_id": "92544",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Chobani",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Yogurt"
+          ],
+          "item_id": "2197626",
+          "name": "Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup",
+          "private_label": false,
+          "score": 0.0,
+          "size_user_friendly": "5.3 oz"
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92544",
+            "name": "Chobani Greek Honey Blended Yogurt",
+            "private_label": false,
+            "score": 130.898353,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088103",
+            "name": "Chobani Yogurt, Greek, Watermelon, Blended",
+            "private_label": false,
+            "score": 117.835736,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92437",
+            "name": "Chobani Reduced Fat Greek Coffee Blended Yogurt",
+            "private_label": false,
+            "score": 112.226324,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92438",
+            "name": "Chobani Reduced Fat Greek Lemon Blended Yogurt",
+            "private_label": false,
+            "score": 112.226324,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088101",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Pumpkin Spice, Blended",
+            "private_label": false,
+            "score": 109.630979,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92861",
+            "name": "Chobani Reduced Fat Greek Mixed Berry Blended Yogurt",
+            "private_label": false,
+            "score": 109.630979,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954767",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Honey Vanilla, Blended",
+            "private_label": false,
+            "score": 105.022123,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92200",
+            "name": "Chobani Yogurt, Greek, Whole Milk, Plain",
+            "private_label": false,
+            "score": 101.194249,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954927",
+            "name": "Chobani Flip Yogurt, Greek, Peanut Butter Cup",
+            "private_label": false,
+            "score": 98.115328,
+            "size_user_friendly": "4.5 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954947",
+            "name": "Chobani Creations Yogurt, Greek, Caramel Sundae",
+            "private_label": false,
+            "score": 95.941119,
+            "size_user_friendly": "5.3 ounce"
+          }
+        ]
+      },
+      "great_value_organic_tomato_sauce_8oz": {
+        "expected_b_id": "105624",
+        "expected_rank": 5,
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 9,
+            "score": 50.696114,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 10,
+            "score": 50.696114,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106020",
+            "name": "Great Lakes Muenster Cheese",
+            "private_label": false,
+            "rank": 11,
+            "score": 50.696114,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106028",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 13,
+            "score": 49.631398,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "108176",
+            "name": "Great Lakes Pepper Jack Cheese",
+            "private_label": false,
+            "rank": 14,
+            "score": 49.631398,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "958065",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 15,
+            "score": 49.631398,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086539",
+            "name": "Great Lakes Ultra Sharp American Cheese",
+            "private_label": false,
+            "rank": 18,
+            "score": 48.610484,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Cheese",
+              "Hard Cheeses",
+              "Gouda, Jack & Havarti"
+            ],
+            "item_id": "956541",
+            "name": "Great Lakes Muenster Cheese Loaf",
+            "private_label": false,
+            "rank": 20,
+            "score": 48.115617,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Seasonal/Rotational"
+            ],
+            "item_id": "89356",
+            "name": "Great Lakes Seasonal 6/12oz cans",
+            "private_label": false,
+            "rank": 23,
+            "score": 47.223679,
+            "size_user_friendly": "72 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Cheese",
+              "Hard Cheeses",
+              "Gouda, Jack & Havarti"
+            ],
+            "item_id": "956549",
+            "name": "Great Lakes Longhorn Colby Jack Cheese",
+            "private_label": false,
+            "rank": 24,
+            "score": 47.155507,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Seasonal/Rotational"
+            ],
+            "item_id": "958334",
+            "name": "Great Lakes Seasonal Beer 12pk/12oz cans",
+            "private_label": false,
+            "rank": 25,
+            "score": 46.761921,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Seasonal/Rotational"
+            ],
+            "item_id": "1089870",
+            "name": "Great Lakes Imperial Seasonal 6/12oz cans",
+            "private_label": false,
+            "rank": 28,
+            "score": 46.309341,
+            "size_user_friendly": "72 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Cheese",
+              "Hard Cheeses",
+              "Gouda, Jack & Havarti"
+            ],
+            "item_id": "956591",
+            "name": "Great Lakes Hatch Chili Pepper Jack Cheese",
+            "private_label": false,
+            "rank": 29,
+            "score": 46.232964,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Variety Packs"
+            ],
+            "item_id": "955398",
+            "name": "Great Lakes Mix Pack Variety Pack 12/12oz can",
+            "private_label": false,
+            "rank": 33,
+            "score": 45.4306,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Porters and Stouts"
+            ],
+            "item_id": "1090141",
+            "name": "Great Lakes Edmund Fitz Porter 12/12oz Bottles",
+            "private_label": false,
+            "rank": 38,
+            "score": 45.003912,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "IPA/Pale Ale"
+            ],
+            "item_id": "1083680",
+            "name": "Great Lakes Commodore Perry IPA 12/12oz Cans",
+            "private_label": false,
+            "rank": 39,
+            "score": 45.003912,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Wheat/Wit/Hefeweizen"
+            ],
+            "item_id": "1089916",
+            "name": "Great Lakes Fruited Wheat Series 6/12oz Cans",
+            "private_label": false,
+            "rank": 40,
+            "score": 45.003912,
+            "size_user_friendly": "72 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Pilsners/Lagers"
+            ],
+            "item_id": "1083683",
+            "name": "Great Lakes Eliot Ness Amber Lager 12/12oz Cans",
+            "private_label": false,
+            "rank": 45,
+            "score": 44.585344,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes Brewing Co.",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Pilsners/Lagers"
+            ],
+            "item_id": "955608",
+            "name": "Great Lakes Brewing Co. Dortmunder Gold  6/12 oz cans",
+            "private_label": false,
+            "rank": 46,
+            "score": 44.34132,
+            "size_user_friendly": "72 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes Brewing Co.",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Seasonal/Rotational"
+            ],
+            "item_id": "1083577",
+            "name": "Great Lakes Brewing Co. Christmas Ale,  12/12 oz cans",
+            "private_label": false,
+            "rank": 47,
+            "score": 44.34132,
+            "size_user_friendly": "144 fl. oz."
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "IPA/Pale Ale"
+            ],
+            "item_id": "1083856",
+            "name": "Great Lakes Juicy Vibacious Double IPA 6/12oz Cans",
+            "private_label": false,
+            "rank": 48,
+            "score": 44.174659,
+            "size_user_friendly": "72 fl. oz."
+          }
+        ],
+        "query": {
+          "brand_raw": "Great Value",
+          "category": [
+            "Food",
+            "Pantry",
+            "Great Value pantry deals"
+          ],
+          "item_id": "1929544",
+          "name": "Great Value Organic Tomato Sauce, 8 oz",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Colgate",
+            "category": [
+              "More Departments",
+              "Personal Care and Makeup",
+              "Oral Care"
+            ],
+            "item_id": "115265",
+            "name": "Colgate Fluoride Toothpaste, Anticavity, Great Regular Flavor, 3 Value Pack",
+            "private_label": false,
+            "score": 62.679607,
+            "size_user_friendly": "18 ounce"
+          },
+          {
+            "brand_raw": "Veggies Made Great",
+            "category": [
+              "Frozen",
+              "Breakfast",
+              "Breakfast Meals"
+            ],
+            "item_id": "954433",
+            "name": "Veggies Made Great Frittata, Tomato Basil",
+            "private_label": false,
+            "score": 62.504275,
+            "size_user_friendly": "12 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Pantry",
+              "Beans & Legumes"
+            ],
+            "item_id": "102490",
+            "name": "Wegmans Organic Great Northern Beans",
+            "private_label": true,
+            "score": 57.71962,
+            "size_user_friendly": "16 ounce"
+          },
+          {
+            "brand_raw": "",
+            "category": [
+              "Grocery",
+              "Pantry",
+              "Packaged Meals, Sides & Rice"
+            ],
+            "item_id": "2685919",
+            "name": "Chef Boyardee Beefaroni Pasta in Tomato and Meat Sauce Value Pack",
+            "private_label": false,
+            "score": 57.256186,
+            "size_user_friendly": "60 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 55.251218,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Great Arrow",
+            "category": [
+              "More Departments",
+              "Party Celebrations & Gifts",
+              "Seasonal Stationery"
+            ],
+            "item_id": "1085780",
+            "name": "Great Arrow Christmas Cards, Pup in Lights",
+            "private_label": false,
+            "score": 54.404482,
+            "size_user_friendly": "8 ct."
+          },
+          {
+            "brand_raw": "Great Arrow",
+            "category": [
+              "More Departments",
+              "Party Celebrations & Gifts",
+              "Seasonal Stationery"
+            ],
+            "item_id": "1085779",
+            "name": "Great Arrow Christmas Cards, Ornament with Metallic Details",
+            "private_label": false,
+            "score": 53.356566,
+            "size_user_friendly": "8 ct."
+          },
+          {
+            "brand_raw": "Meal Mart",
+            "category": [
+              "Frozen",
+              "Kosher",
+              ""
+            ],
+            "item_id": "954238",
+            "name": "Meal Mart Stuffed Cabbage, with Meat in Tomato Garlic Sauce, Family Value Pack",
+            "private_label": false,
+            "score": 50.779758,
+            "size_user_friendly": "39 ounce"
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 50.696114,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 50.696114,
+            "size_user_friendly": ""
+          }
+        ]
+      },
+      "great_value_provolone_noise_probe": {
+        "expected_b_id": null,
+        "expected_rank": null,
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 1,
+            "score": 75.009083,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 2,
+            "score": 75.009083,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106020",
+            "name": "Great Lakes Muenster Cheese",
+            "private_label": false,
+            "rank": 30,
+            "score": 50.258638,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "958065",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 38,
+            "score": 48.95018,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "108176",
+            "name": "Great Lakes Pepper Jack Cheese",
+            "private_label": false,
+            "rank": 39,
+            "score": 48.95018,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106028",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 40,
+            "score": 48.95018,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086539",
+            "name": "Great Lakes Ultra Sharp American Cheese",
+            "private_label": false,
+            "rank": 50,
+            "score": 47.71526,
+            "size_user_friendly": ""
+          }
+        ],
+        "query": {
+          "brand_raw": "",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Dairy Brands"
+          ],
+          "item_id": "1930779",
+          "name": "Great Value Provolone Deli Style Sliced Cheese, 8 oz, 19 Slices",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 75.009083,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 75.009083,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "BelGioioso",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106903",
+            "name": "BelGioioso Provolone Cheese, Sliced, Sharp",
+            "private_label": false,
+            "score": 74.455613,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 74.318416,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 72.458199,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Daiya",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Dairy-Free"
+            ],
+            "item_id": "954896",
+            "name": "Daiya Dairy-Free Provolone Cheese Slices",
+            "private_label": false,
+            "score": 71.044348,
+            "size_user_friendly": "7.8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 69.347617,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Kraft",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92595",
+            "name": "Kraft Deli Deluxe American Cheese Slices",
+            "private_label": false,
+            "score": 64.3963,
+            "size_user_friendly": "16 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92807",
+            "name": "Wegmans Provolone Cheese, Thin Sliced, 2% Milk, Reduced Fat, Not Smoked",
+            "private_label": true,
+            "score": 63.263199,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 62.884941,
+            "size_user_friendly": "5 ounce"
+          }
+        ]
+      }
+    },
+    "suppress_private_label": {
+      "chobani_honey_yogurt": {
+        "expected_b_id": "92544",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Chobani",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Yogurt"
+          ],
+          "item_id": "2197626",
+          "name": "Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup",
+          "private_label": false,
+          "score": 0.0,
+          "size_user_friendly": "5.3 oz"
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92544",
+            "name": "Chobani Greek Honey Blended Yogurt",
+            "private_label": false,
+            "score": 130.372317,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088103",
+            "name": "Chobani Yogurt, Greek, Watermelon, Blended",
+            "private_label": false,
+            "score": 117.365312,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92438",
+            "name": "Chobani Reduced Fat Greek Lemon Blended Yogurt",
+            "private_label": false,
+            "score": 111.71403,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92437",
+            "name": "Chobani Reduced Fat Greek Coffee Blended Yogurt",
+            "private_label": false,
+            "score": 111.71403,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92861",
+            "name": "Chobani Reduced Fat Greek Mixed Berry Blended Yogurt",
+            "private_label": false,
+            "score": 109.101503,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088101",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Pumpkin Spice, Blended",
+            "private_label": false,
+            "score": 109.101503,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954767",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Honey Vanilla, Blended",
+            "private_label": false,
+            "score": 104.56845,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92200",
+            "name": "Chobani Yogurt, Greek, Whole Milk, Plain",
+            "private_label": false,
+            "score": 100.817952,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954927",
+            "name": "Chobani Flip Yogurt, Greek, Peanut Butter Cup",
+            "private_label": false,
+            "score": 97.696164,
+            "size_user_friendly": "4.5 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954947",
+            "name": "Chobani Creations Yogurt, Greek, Caramel Sundae",
+            "private_label": false,
+            "score": 95.535515,
+            "size_user_friendly": "5.3 ounce"
+          }
+        ]
+      },
+      "great_value_organic_tomato_sauce_8oz": {
+        "expected_b_id": "105624",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Great Value",
+          "category": [
+            "Food",
+            "Pantry",
+            "Great Value pantry deals"
+          ],
+          "item_id": "1929544",
+          "name": "Great Value Organic Tomato Sauce, 8 oz",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 57.385973,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105387",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 49.915078,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105133",
+            "name": "Wegmans No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 45.750361,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103620",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 45.706369,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "1086860",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 45.706369,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Hunt's",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "96805",
+            "name": "Hunt's Tomato Sauce, No Salt Added",
+            "private_label": false,
+            "score": 42.238686,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105438",
+            "name": "Wegmans Organic No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 41.987047,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Hunt's",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103270",
+            "name": "Hunt's Tomato Sauce, Basil, Garlic & Oregano",
+            "private_label": false,
+            "score": 41.186853,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Goya",
+            "category": [
+              "Grocery",
+              "International Foods",
+              "Latino Foods"
+            ],
+            "item_id": "99091",
+            "name": "Goya Tomato Sauce, Seasoned",
+            "private_label": false,
+            "score": 40.948757,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Goya",
+            "category": [
+              "Grocery",
+              "International Foods",
+              "Latino Foods"
+            ],
+            "item_id": "96270",
+            "name": "Goya Tomato Sauce, Spanish Style",
+            "private_label": false,
+            "score": 39.852706,
+            "size_user_friendly": "8 ounce"
+          }
+        ]
+      },
+      "great_value_provolone_noise_probe": {
+        "expected_b_id": null,
+        "expected_rank": null,
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 40,
+            "score": 49.483484,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 41,
+            "score": 49.483484,
+            "size_user_friendly": ""
+          }
+        ],
+        "query": {
+          "brand_raw": "",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Dairy Brands"
+          ],
+          "item_id": "1930779",
+          "name": "Great Value Provolone Deli Style Sliced Cheese, 8 oz, 19 Slices",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 76.677933,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 75.179063,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "BelGioioso",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106903",
+            "name": "BelGioioso Provolone Cheese, Sliced, Sharp",
+            "private_label": false,
+            "score": 74.128786,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 71.668349,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Daiya",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Dairy-Free"
+            ],
+            "item_id": "954896",
+            "name": "Daiya Dairy-Free Provolone Cheese Slices",
+            "private_label": false,
+            "score": 70.722479,
+            "size_user_friendly": "7.8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 65.365878,
+            "size_user_friendly": "5 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92807",
+            "name": "Wegmans Provolone Cheese, Thin Sliced, 2% Milk, Reduced Fat, Not Smoked",
+            "private_label": true,
+            "score": 65.076138,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Kraft",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92595",
+            "name": "Kraft Deli Deluxe American Cheese Slices",
+            "private_label": false,
+            "score": 64.08794,
+            "size_user_friendly": "16 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92237",
+            "name": "Wegmans Sliced Provolone Cheese, FAMILY PACK",
+            "private_label": true,
+            "score": 62.506041,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Kraft",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92941",
+            "name": "Kraft Deli Deluxe White American Cheese Slices",
+            "private_label": false,
+            "score": 62.287998,
+            "size_user_friendly": "16 ounce"
+          }
+        ]
+      }
+    }
+  },
+  "environment": {
+    "b_index_rows": 55516,
+    "has_rank_bm25": true,
+    "has_sklearn": true,
+    "top_k": 50
+  },
+  "private_label_noise": {
+    "brand_included": {
+      "great_value_provolone_text": {
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 1,
+            "score": 0.603842,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 2,
+            "score": 0.603842,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "108176",
+            "name": "Great Lakes Pepper Jack Cheese",
+            "private_label": false,
+            "rank": 26,
+            "score": 0.308498,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106020",
+            "name": "Great Lakes Muenster Cheese",
+            "private_label": false,
+            "rank": 34,
+            "score": 0.287363,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "958065",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 35,
+            "score": 0.286843,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106028",
+            "name": "Great Lakes Colby Jack Cheese",
+            "private_label": false,
+            "rank": 36,
+            "score": 0.286843,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086539",
+            "name": "Great Lakes Ultra Sharp American Cheese",
+            "private_label": false,
+            "rank": 47,
+            "score": 0.264419,
+            "size_user_friendly": ""
+          }
+        ],
+        "query_text": "Great Value Provolone Deli Style Sliced Cheese 8 oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 0.603842,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 0.603842,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.601557,
+            "size_user_friendly": "5 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92237",
+            "name": "Wegmans Sliced Provolone Cheese, FAMILY PACK",
+            "private_label": true,
+            "score": 0.544261,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.53915,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086524",
+            "name": "Wegmans Organic Provolone Cheese",
+            "private_label": true,
+            "score": 0.517409,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 0.500711,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 0.496053,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Organic Valley",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1888803",
+            "name": "Organic Valley Cheese Slices, Non-Smoked, Provolone",
+            "private_label": false,
+            "score": 0.462213,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "BelGioioso",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106903",
+            "name": "BelGioioso Provolone Cheese, Sliced, Sharp",
+            "private_label": false,
+            "score": 0.452273,
+            "size_user_friendly": "8 ounce"
+          }
+        ]
+      },
+      "great_value_tomato_text": {
+        "great_lakes_hits_top_k": [],
+        "query_text": "Great Value Organic Tomato Sauce 8 oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.49362,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103620",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.478938,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "1086860",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.468802,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105438",
+            "name": "Wegmans Organic No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 0.387001,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105387",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.38262,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95511",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.368911,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95612",
+            "name": "Wegmans Organic Tomato Paste",
+            "private_label": true,
+            "score": 0.368857,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Soups & Broths",
+              "Canned Soup"
+            ],
+            "item_id": "96777",
+            "name": "Wegmans Organic Tomato Soup",
+            "private_label": true,
+            "score": 0.3671,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95521",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.360302,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "97092",
+            "name": "Wegmans Organic Tomato Puree",
+            "private_label": true,
+            "score": 0.348995,
+            "size_user_friendly": "29 ounce"
+          }
+        ]
+      },
+      "great_value_water_text": {
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "Wine, Beer & Spirits",
+              "Beer Shop",
+              "Seasonal/Rotational"
+            ],
+            "item_id": "89356",
+            "name": "Great Lakes Seasonal 6/12oz cans",
+            "private_label": false,
+            "rank": 44,
+            "score": 0.247806,
+            "size_user_friendly": "72 fl. oz."
+          }
+        ],
+        "query_text": "Great Value Spring Water 24 x 16.9 fl oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "95589",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.552847,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "95433",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.552847,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "103178",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.552847,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "1089446",
+            "name": "Wegmans Spring Water",
+            "private_label": true,
+            "score": 0.487162,
+            "size_user_friendly": "16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "97341",
+            "name": "Wegmans Spring Water",
+            "private_label": true,
+            "score": 0.487162,
+            "size_user_friendly": "16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Poland Spring",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "958083",
+            "name": "Poland Spring Natural Spring Water",
+            "private_label": false,
+            "score": 0.44285,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "100502",
+            "name": "Wegmans Spring Water, 15 pack bottles",
+            "private_label": true,
+            "score": 0.410262,
+            "size_user_friendly": "15 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "1089443",
+            "name": "Wegmans Spring Water, 35 Pack FAMILY PACK",
+            "private_label": true,
+            "score": 0.4079,
+            "size_user_friendly": "35 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Poland Spring",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "1089455",
+            "name": "Poland Spring 100% Natural Spring Water",
+            "private_label": false,
+            "score": 0.394578,
+            "size_user_friendly": "6 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "101389",
+            "name": "Wegmans Spring Mini Water, 24 Pack",
+            "private_label": true,
+            "score": 0.386986,
+            "size_user_friendly": "24 x 8 fl. oz."
+          }
+        ]
+      }
+    },
+    "suppress_private_label": {
+      "great_value_provolone_text": {
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 10,
+            "score": 0.527178,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 11,
+            "score": 0.527178,
+            "size_user_friendly": ""
+          }
+        ],
+        "query_text": "Great Value Provolone Deli Style Sliced Cheese 8 oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.747703,
+            "size_user_friendly": "5 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92237",
+            "name": "Wegmans Sliced Provolone Cheese, FAMILY PACK",
+            "private_label": true,
+            "score": 0.675541,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.665008,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086524",
+            "name": "Wegmans Organic Provolone Cheese",
+            "private_label": true,
+            "score": 0.64922,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 0.636142,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 0.611916,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106011",
+            "name": "Wegmans Italian Classics Provolone Cheese",
+            "private_label": true,
+            "score": 0.558553,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92807",
+            "name": "Wegmans Provolone Cheese, Thin Sliced, 2% Milk, Reduced Fat, Not Smoked",
+            "private_label": true,
+            "score": 0.543253,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "BelGioioso",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106903",
+            "name": "BelGioioso Provolone Cheese, Sliced, Sharp",
+            "private_label": false,
+            "score": 0.539267,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 0.527178,
+            "size_user_friendly": ""
+          }
+        ]
+      },
+      "great_value_tomato_text": {
+        "great_lakes_hits_top_k": [],
+        "query_text": "Great Value Organic Tomato Sauce 8 oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.71039,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103620",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.688069,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "1086860",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.672222,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105387",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.560245,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105438",
+            "name": "Wegmans Organic No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 0.549522,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95511",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.538698,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Soups & Broths",
+              "Canned Soup"
+            ],
+            "item_id": "96777",
+            "name": "Wegmans Organic Tomato Soup",
+            "private_label": true,
+            "score": 0.535985,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95612",
+            "name": "Wegmans Organic Tomato Paste",
+            "private_label": true,
+            "score": 0.529994,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95521",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.524566,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "97092",
+            "name": "Wegmans Organic Tomato Puree",
+            "private_label": true,
+            "score": 0.499956,
+            "size_user_friendly": "29 ounce"
+          }
+        ]
+      },
+      "great_value_water_text": {
+        "great_lakes_hits_top_k": [],
+        "query_text": "Great Value Spring Water 24 x 16.9 fl oz",
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "95589",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.841801,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "103178",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.841801,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "95433",
+            "name": "Wegmans Spring Water, 24 Pack",
+            "private_label": true,
+            "score": 0.841801,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "1089446",
+            "name": "Wegmans Spring Water",
+            "private_label": true,
+            "score": 0.752207,
+            "size_user_friendly": "16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "97341",
+            "name": "Wegmans Spring Water",
+            "private_label": true,
+            "score": 0.752207,
+            "size_user_friendly": "16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Poland Spring",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "958083",
+            "name": "Poland Spring Natural Spring Water",
+            "private_label": false,
+            "score": 0.620819,
+            "size_user_friendly": "24 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "100502",
+            "name": "Wegmans Spring Water, 15 pack bottles",
+            "private_label": true,
+            "score": 0.614741,
+            "size_user_friendly": "15 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "1089443",
+            "name": "Wegmans Spring Water, 35 Pack FAMILY PACK",
+            "private_label": true,
+            "score": 0.608187,
+            "size_user_friendly": "35 x 16.9 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "101872",
+            "name": "Wegmans Spring Water",
+            "private_label": true,
+            "score": 0.591838,
+            "size_user_friendly": "33.8 fl. oz."
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Beverages",
+              "Bottled Water"
+            ],
+            "item_id": "101389",
+            "name": "Wegmans Spring Mini Water, 24 Pack",
+            "private_label": true,
+            "score": 0.582361,
+            "size_user_friendly": "24 x 8 fl. oz."
+          }
+        ]
+      }
+    }
+  },
+  "tfidf": {
+    "brand_included": {
+      "chobani_honey_yogurt": {
+        "expected_b_id": "92544",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Chobani",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Yogurt"
+          ],
+          "item_id": "2197626",
+          "name": "Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup",
+          "private_label": false,
+          "score": 0.0,
+          "size_user_friendly": "5.3 oz"
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92544",
+            "name": "Chobani Greek Honey Blended Yogurt",
+            "private_label": false,
+            "score": 0.802919,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92200",
+            "name": "Chobani Yogurt, Greek, Whole Milk, Plain",
+            "private_label": false,
+            "score": 0.671483,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088103",
+            "name": "Chobani Yogurt, Greek, Watermelon, Blended",
+            "private_label": false,
+            "score": 0.66677,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954767",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Honey Vanilla, Blended",
+            "private_label": false,
+            "score": 0.645902,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92438",
+            "name": "Chobani Reduced Fat Greek Lemon Blended Yogurt",
+            "private_label": false,
+            "score": 0.638551,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92437",
+            "name": "Chobani Reduced Fat Greek Coffee Blended Yogurt",
+            "private_label": false,
+            "score": 0.634638,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92966",
+            "name": "Chobani Yogurt, Greek, Non-Fat, Blended, Strawberry",
+            "private_label": false,
+            "score": 0.626055,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92861",
+            "name": "Chobani Reduced Fat Greek Mixed Berry Blended Yogurt",
+            "private_label": false,
+            "score": 0.621052,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088101",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Pumpkin Spice, Blended",
+            "private_label": false,
+            "score": 0.60069,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954927",
+            "name": "Chobani Flip Yogurt, Greek, Peanut Butter Cup",
+            "private_label": false,
+            "score": 0.582542,
+            "size_user_friendly": "4.5 ounce"
+          }
+        ]
+      },
+      "great_value_organic_tomato_sauce_8oz": {
+        "expected_b_id": "105624",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Great Value",
+          "category": [
+            "Food",
+            "Pantry",
+            "Great Value pantry deals"
+          ],
+          "item_id": "1929544",
+          "name": "Great Value Organic Tomato Sauce, 8 oz",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.480423,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103620",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.466686,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "1086860",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.456809,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105387",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.385684,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105438",
+            "name": "Wegmans Organic No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 0.379654,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95511",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.372655,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95612",
+            "name": "Wegmans Organic Tomato Paste",
+            "private_label": true,
+            "score": 0.371228,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95521",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.363959,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "97092",
+            "name": "Wegmans Organic Tomato Puree",
+            "private_label": true,
+            "score": 0.350027,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Hunt's",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "96571",
+            "name": "Hunt's Tomato Sauce",
+            "private_label": false,
+            "score": 0.340184,
+            "size_user_friendly": "15 ounce"
+          }
+        ]
+      },
+      "great_value_provolone_noise_probe": {
+        "expected_b_id": null,
+        "expected_rank": null,
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 4,
+            "score": 0.526525,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 5,
+            "score": 0.526525,
+            "size_user_friendly": ""
+          }
+        ],
+        "query": {
+          "brand_raw": "",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Dairy Brands"
+          ],
+          "item_id": "1930779",
+          "name": "Great Value Provolone Deli Style Sliced Cheese, 8 oz, 19 Slices",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.572723,
+            "size_user_friendly": "5 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92237",
+            "name": "Wegmans Sliced Provolone Cheese, FAMILY PACK",
+            "private_label": true,
+            "score": 0.553508,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 0.553454,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 0.526525,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "score": 0.526525,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.513174,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 0.50881,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Daiya",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Dairy-Free"
+            ],
+            "item_id": "954896",
+            "name": "Daiya Dairy-Free Provolone Cheese Slices",
+            "private_label": false,
+            "score": 0.507865,
+            "size_user_friendly": "7.8 ounce"
+          },
+          {
+            "brand_raw": "Organic Valley",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1888803",
+            "name": "Organic Valley Cheese Slices, Non-Smoked, Provolone",
+            "private_label": false,
+            "score": 0.47895,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086524",
+            "name": "Wegmans Organic Provolone Cheese",
+            "private_label": true,
+            "score": 0.474655,
+            "size_user_friendly": ""
+          }
+        ]
+      }
+    },
+    "suppress_private_label": {
+      "chobani_honey_yogurt": {
+        "expected_b_id": "92544",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Chobani",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Yogurt"
+          ],
+          "item_id": "2197626",
+          "name": "Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup",
+          "private_label": false,
+          "score": 0.0,
+          "size_user_friendly": "5.3 oz"
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92544",
+            "name": "Chobani Greek Honey Blended Yogurt",
+            "private_label": false,
+            "score": 0.802919,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92200",
+            "name": "Chobani Yogurt, Greek, Whole Milk, Plain",
+            "private_label": false,
+            "score": 0.671483,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088103",
+            "name": "Chobani Yogurt, Greek, Watermelon, Blended",
+            "private_label": false,
+            "score": 0.66677,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954767",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Honey Vanilla, Blended",
+            "private_label": false,
+            "score": 0.645902,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92438",
+            "name": "Chobani Reduced Fat Greek Lemon Blended Yogurt",
+            "private_label": false,
+            "score": 0.638551,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92437",
+            "name": "Chobani Reduced Fat Greek Coffee Blended Yogurt",
+            "private_label": false,
+            "score": 0.634638,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92966",
+            "name": "Chobani Yogurt, Greek, Non-Fat, Blended, Strawberry",
+            "private_label": false,
+            "score": 0.626055,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "92861",
+            "name": "Chobani Reduced Fat Greek Mixed Berry Blended Yogurt",
+            "private_label": false,
+            "score": 0.621052,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "1088101",
+            "name": "Chobani Yogurt, Reduced Fat, Greek, Pumpkin Spice, Blended",
+            "private_label": false,
+            "score": 0.60069,
+            "size_user_friendly": "5.3 ounce"
+          },
+          {
+            "brand_raw": "Chobani",
+            "category": [
+              "Dairy",
+              "Yogurt",
+              "Greek"
+            ],
+            "item_id": "954927",
+            "name": "Chobani Flip Yogurt, Greek, Peanut Butter Cup",
+            "private_label": false,
+            "score": 0.582542,
+            "size_user_friendly": "4.5 ounce"
+          }
+        ]
+      },
+      "great_value_organic_tomato_sauce_8oz": {
+        "expected_b_id": "105624",
+        "expected_rank": 1,
+        "great_lakes_hits_top_k": [],
+        "query": {
+          "brand_raw": "Great Value",
+          "category": [
+            "Food",
+            "Pantry",
+            "Great Value pantry deals"
+          ],
+          "item_id": "1929544",
+          "name": "Great Value Organic Tomato Sauce, 8 oz",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105624",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.64219,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "103620",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.622756,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "1086860",
+            "name": "Wegmans Organic Tomato Sauce",
+            "private_label": true,
+            "score": 0.608414,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105387",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.52473,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95511",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.505633,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "105438",
+            "name": "Wegmans Organic No Salt Added Tomato Sauce",
+            "private_label": true,
+            "score": 0.500761,
+            "size_user_friendly": "15 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95612",
+            "name": "Wegmans Organic Tomato Paste",
+            "private_label": true,
+            "score": 0.495594,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "95521",
+            "name": "Wegmans Tomato Sauce",
+            "private_label": true,
+            "score": 0.492368,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Canned Tomatoes & Italian Pantry",
+              "Canned Tomatoes"
+            ],
+            "item_id": "97092",
+            "name": "Wegmans Organic Tomato Puree",
+            "private_label": true,
+            "score": 0.465891,
+            "size_user_friendly": "29 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Grocery",
+              "Soups & Broths",
+              "Canned Soup"
+            ],
+            "item_id": "96777",
+            "name": "Wegmans Organic Tomato Soup",
+            "private_label": true,
+            "score": 0.437656,
+            "size_user_friendly": "15 ounce"
+          }
+        ]
+      },
+      "great_value_provolone_noise_probe": {
+        "expected_b_id": null,
+        "expected_rank": null,
+        "great_lakes_hits_top_k": [
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "2029574",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 12,
+            "score": 0.444871,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Great Lakes",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106015",
+            "name": "Great Lakes Provolone Cheese",
+            "private_label": false,
+            "rank": 13,
+            "score": 0.444871,
+            "size_user_friendly": ""
+          }
+        ],
+        "query": {
+          "brand_raw": "",
+          "category": [
+            "Food",
+            "Dairy & Eggs",
+            "Dairy Brands"
+          ],
+          "item_id": "1930779",
+          "name": "Great Value Provolone Deli Style Sliced Cheese, 8 oz, 19 Slices",
+          "private_label": true,
+          "score": 0.0,
+          "size_user_friendly": ""
+        },
+        "top_candidates": [
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "111517",
+            "name": "Wegmans Organic Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.652941,
+            "size_user_friendly": "5 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92237",
+            "name": "Wegmans Sliced Provolone Cheese, FAMILY PACK",
+            "private_label": true,
+            "score": 0.630151,
+            "size_user_friendly": "32 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92885",
+            "name": "Wegmans Extra Thin Sliced Provolone Cheese, 20 Slices",
+            "private_label": true,
+            "score": 0.626212,
+            "size_user_friendly": "7.6 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "91729",
+            "name": "Wegmans Cheese, Non Smoked Provolone, Thin Sliced",
+            "private_label": true,
+            "score": 0.591307,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "112760",
+            "name": "Wegmans Italian Classics Provolone Cheese, Sliced",
+            "private_label": true,
+            "score": 0.580575,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Daiya",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Dairy-Free"
+            ],
+            "item_id": "954896",
+            "name": "Daiya Dairy-Free Provolone Cheese Slices",
+            "private_label": false,
+            "score": 0.554969,
+            "size_user_friendly": "7.8 ounce"
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1086524",
+            "name": "Wegmans Organic Provolone Cheese",
+            "private_label": true,
+            "score": 0.546276,
+            "size_user_friendly": ""
+          },
+          {
+            "brand_raw": "Wegmans",
+            "category": [
+              "Dairy",
+              "Cheese",
+              "Sliced"
+            ],
+            "item_id": "92807",
+            "name": "Wegmans Provolone Cheese, Thin Sliced, 2% Milk, Reduced Fat, Not Smoked",
+            "private_label": true,
+            "score": 0.505986,
+            "size_user_friendly": "8 ounce"
+          },
+          {
+            "brand_raw": "Organic Valley",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "1888803",
+            "name": "Organic Valley Cheese Slices, Non-Smoked, Provolone",
+            "private_label": false,
+            "score": 0.50342,
+            "size_user_friendly": "6 ounce"
+          },
+          {
+            "brand_raw": "BelGioioso",
+            "category": [
+              "More Departments",
+              "Deli",
+              "Cheese"
+            ],
+            "item_id": "106903",
+            "name": "BelGioioso Provolone Cheese, Sliced, Sharp",
+            "private_label": false,
+            "score": 0.470799,
+            "size_user_friendly": "8 ounce"
+          }
+        ]
+      }
+    }
+  }
+}

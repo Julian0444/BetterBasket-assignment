@@ -1,0 +1,18 @@
+item_id_A,item_id_B,case_id,reason
+2197626,92544,pdf_chobani,Chobani honey blended yogurt 5.3 oz; national brand exact size match
+1929544,105624,pdf_tomato_8oz,Great Value Organic Tomato Sauce 8 oz matches Wegmans Organic Tomato Sauce 8 oz; private-label cross-store correct size chosen over 15 oz and 29 oz B variants
+9000001,103620,tomato_wrong_size_variants_present,15 oz tomato sauce A correctly matches 15 oz Wegmans B; 8 oz B 105624 and 29 oz B 1086860 are present but must not be selected
+9000002,9100001,private_label_cross_store,Great Value Whole Milk 1 gal matches Wegmans Whole Milk 1 gal; private-label to private-label same size and category
+9000003,9100002,national_brand_exact,Heinz Tomato Ketchup 32 oz matches Heinz Tomato Ketchup 32 oz; national brand exact match
+9000004,9100003,pack_prefix,(12 Pack) Chobani 5.3 oz yogurt A matches Chobani 12 x 5.3 oz multipack B; pack prefix correctly parsed and matched
+9000005,9100004,home_kitchen_in_scope,KitchenAid spatula in Home > Kitchen & Dining maps to B Kitchen and Home; in-scope category match
+9000006,NO_MATCH,national_vs_private_label_reject,Coca-Cola is a national brand; Wegmans Cola B 9100005 is a store private label; national-to-private-label rejected
+9000007,NO_MATCH,size_mismatch,Jif Peanut Butter 16 oz A; B 9100006 has only 18 oz Jif; size incompatible no match
+9000008,NO_MATCH,frozen_storage_mismatch,Progresso Frozen soup A storage_type frozen; B 9100007 is shelf-stable Progresso soup; storage type conflict
+9000009,NO_MATCH,powder_liquid_mismatch,Country Time lemonade powder form A; B 9100008 is liquid ready-to-drink; form conflict
+9000010,NO_MATCH,sliced_shredded_mismatch,Kraft Singles sliced cheese A; B 9100009 is shredded American cheese; form conflict
+9000011,NO_MATCH,cat_dog_mismatch,Purina ONE cat food A; B 9100010 is Purina ONE dog food; species conflict
+9000012,NO_MATCH,alcohol_mismatch,Martinelli's sparkling apple cider A is non-alcoholic; B 9100011 is sparkling apple wine alcohol; alcohol vs non-alcohol conflict
+9000013,NO_MATCH,flavor_mismatch,Blue Bell Vanilla ice cream A; B 9100012 is chocolate ice cream; flavor conflict
+9000014,NO_MATCH,out_of_scope_category,Hot Wheels toy car is in Toys category_0; no Wegmans counterpart; out of scope
+9000015,NO_MATCH,home_decor_out_of_scope,Mainstays picture frame in Home > Home Decor; Home Decor has no Wegmans counterpart; out of scope
