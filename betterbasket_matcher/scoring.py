@@ -44,6 +44,10 @@ class SelectionResult:
     breakdown: Optional[ScoreBreakdown]
     rejected: tuple
     runner_up_item_id_b: Optional[str]
+    # Top rule-surviving candidate's id, exposed for the Phase 7 audit row.
+    # Equals selected_item_id_b on `selected`; equals the top survivor on
+    # below_min_score / below_min_margin; None on no_candidates / all_rejected.
+    top_item_id_b: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +291,7 @@ def select_best(
             breakdown=None,
             rejected=tuple(),
             runner_up_item_id_b=None,
+            top_item_id_b=None,
         )
 
     survivors: List[Tuple[NormalizedProduct, float, ScoreBreakdown]] = []
@@ -308,10 +313,12 @@ def select_best(
             breakdown=None,
             rejected=tuple(rejected),
             runner_up_item_id_b=None,
+            top_item_id_b=None,
         )
 
     survivors.sort(key=lambda triple: _tiebreak_key(a, triple[0], triple[2]))
     top_b, _, top_bd = survivors[0]
+    top_id = top_b.item_id
     if len(survivors) > 1:
         runner_b = survivors[1][0]
         margin: Optional[float] = top_bd.total - survivors[1][2].total
@@ -330,6 +337,7 @@ def select_best(
             breakdown=top_bd,
             rejected=tuple(rejected),
             runner_up_item_id_b=runner_id,
+            top_item_id_b=top_id,
         )
 
     if margin is not None and margin < min_margin:
@@ -341,14 +349,16 @@ def select_best(
             breakdown=top_bd,
             rejected=tuple(rejected),
             runner_up_item_id_b=runner_id,
+            top_item_id_b=top_id,
         )
 
     return SelectionResult(
-        selected_item_id_b=top_b.item_id,
+        selected_item_id_b=top_id,
         score=top_bd.total,
         margin=margin,
         reason="selected",
         breakdown=top_bd,
         rejected=tuple(rejected),
         runner_up_item_id_b=runner_id,
+        top_item_id_b=top_id,
     )

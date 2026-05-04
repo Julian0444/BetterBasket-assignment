@@ -134,6 +134,20 @@ class TestSelectionResultDataclass:
         with pytest.raises(dataclasses.FrozenInstanceError):
             sr.reason = "selected"  # type: ignore[misc]
 
+    def test_top_item_id_b_field_defaults_none(self):
+        """Backward-compatible default; existing kwargs constructions stay valid."""
+        sr = SelectionResult(
+            selected_item_id_b=None,
+            score=None,
+            margin=None,
+            reason="no_candidates",
+            breakdown=None,
+            rejected=tuple(),
+            runner_up_item_id_b=None,
+        )
+        assert hasattr(sr, "top_item_id_b")
+        assert sr.top_item_id_b is None
+
 
 # ---------------------------------------------------------------------------
 # Core-name normalization
@@ -382,6 +396,70 @@ class TestSingleSurvivorMargin:
         assert result.margin is None
         assert result.runner_up_item_id_b is None
         assert len(result.rejected) == 2
+
+
+# ---------------------------------------------------------------------------
+# top_item_id_b exposure (Phase 7 contract closure)
+# ---------------------------------------------------------------------------
+
+class TestTopItemIdB:
+    """top_item_id_b must be populated for every reason branch so the pipeline
+    audit row can carry the top scored survivor's id without re-running rules.
+    """
+
+    def test_selected_top_equals_selected(self, a_index, b_index):
+        a = a_index["2197626"]
+        pairs = [(b_index["92544"], 2.0)]
+        result = select_best(a, pairs, min_score=0.3, min_margin=0.0)
+        assert result.reason == "selected"
+        assert result.top_item_id_b == result.selected_item_id_b
+        assert result.top_item_id_b == "92544"
+
+    def test_no_candidates_top_is_none(self, a_index):
+        a = a_index["1929544"]
+        result = select_best(a, [], min_score=0.5, min_margin=0.05)
+        assert result.reason == "no_candidates"
+        assert result.top_item_id_b is None
+
+    def test_all_rejected_top_is_none(self, a_index, b_index):
+        a = a_index["1929544"]
+        pairs = [
+            (b_index["103620"], 1.0),
+            (b_index["1086860"], 1.0),
+        ]
+        result = select_best(a, pairs, min_score=0.5, min_margin=0.0)
+        assert result.reason == "all_rejected"
+        assert result.top_item_id_b is None
+
+    def test_below_min_score_top_is_top_survivor(self, a_index, b_index):
+        a = a_index["1929544"]
+        pairs = [(b_index["105624"], 0.0)]  # only survivor; score below threshold
+        result = select_best(a, pairs, min_score=0.99, min_margin=0.0)
+        assert result.reason == "below_min_score"
+        assert result.top_item_id_b == "105624"
+        assert result.selected_item_id_b is None
+
+    def test_below_min_margin_top_is_top_survivor(self, a_index, b_index):
+        a = a_index["2197626"]
+        b1 = b_index["92544"]
+        b2 = _make_product(
+            item_id="999999",
+            source="B",
+            brand_norm="chobani",
+            size=SizeInfo(unit="oz", unit_size=5.3, pack_count=1, total_size=5.3),
+            category_0="dairy",
+            category_1="yogurt",
+            category_2="greek",
+            core_name="greek honey blended yogurt",
+        )
+        pairs = [(b1, 2.0), (b2, 2.0)]
+        result = select_best(a, pairs, min_score=0.5, min_margin=0.5)
+        assert result.reason == "below_min_margin"
+        # Top survivor is the lower-id one by tie-break (stable id ascending).
+        assert result.top_item_id_b in {"92544", "999999"}
+        # Specifically, with equal totals, smaller numeric id wins.
+        assert result.top_item_id_b == "92544"
+        assert result.selected_item_id_b is None
 
 
 # ---------------------------------------------------------------------------

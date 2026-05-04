@@ -558,3 +558,58 @@ Blockers: none.
 
 Next suggested action: Phase 7 — pipeline orchestration and output, unchanged from the prior session's recommendation.
 
+## Session - 2026-05-03 14:30 PDT
+
+Completed:
+
+- Phase 7: implemented end-to-end fixture pipeline orchestration and output validation.
+- Wrote `tests/test_pipeline_fixtures.py` (25 tests) and `tests/test_output_validation.py` (17 tests) first (TDD); confirmed `ModuleNotFoundError` on collection before implementation.
+- Extended `tests/test_scoring.py` with 6 tests locking the `top_item_id_b` contract (one dataclass-default test plus the five `reason`-branch assertions). Confirmed red with `AttributeError: 'SelectionResult' object has no attribute 'top_item_id_b'` before the `scoring.py` edit landed.
+- Implemented Phase 7 modules narrowly: `betterbasket_matcher/output.py`, `betterbasket_matcher/pipeline.py`, `scripts/run_pipeline.py`. The only earlier-phase touch is the approved `scoring.py` extension to expose `top_item_id_b` (no behavior change beyond surfacing the top survivor id).
+- No taxonomy/rules/retrieval/normalize/IO/scope edits; no fixture edits; no LLM logic; no calibration; no full-dataset run.
+
+Changed files:
+
+- `betterbasket_matcher/output.py` (new)
+- `betterbasket_matcher/pipeline.py` (new)
+- `scripts/run_pipeline.py` (new)
+- `tests/test_pipeline_fixtures.py` (new)
+- `tests/test_output_validation.py` (new)
+- `betterbasket_matcher/scoring.py` (modified — `SelectionResult.top_item_id_b` field with default `None`, populated in all four return paths; renamed local `top_b.item_id` to a single `top_id` binding)
+- `tests/test_scoring.py` (modified — `TestSelectionResultDataclass.test_top_item_id_b_field_defaults_none` and a new `TestTopItemIdB` class with 5 assertions)
+- `docs/HANDOFF.md` (this entry)
+
+Behavior summary:
+
+- `PipelineConfig(a_csv, b_csv, matches_out, audit_out, min_score=0.55, min_margin=0.05, top_k=50, limit=None)`. `PipelineResult` carries `matches`, `audit_rows`, plus 7 counts (`valid_a_count`, `quarantined_a_count`, `valid_b_count`, `in_scope_a_count`, `accepted_count`, `rejected_by_rule_count`, `below_threshold_count`, `no_candidates_count`). `valid_a_count` reflects the count actually processed (post-quarantine, post-`limit`) so the audit-completeness invariant `len(audit_rows) == valid_a_count` holds for both the no-limit and limited paths.
+- `run_pipeline` flow: `read_products` quarantines non-numeric/blank-name A rows, `normalize_product` builds `NormalizedProduct`s for A and B, `--limit` truncates the normalized A list **after** quarantine and **before** scope/retrieval, `TfidfRetriever().fit(b_products)` runs once, then per-A: `is_a_in_scope` -> `retriever.query` -> `select_best` -> exactly one audit row. Out-of-scope A rows skip retrieval and emit `decision="no_candidates"` with `reason` set to the literal scope reason (`excluded_category`, `excluded_home_decor`, etc.). In-scope A rows that get zero retrieval candidates emit `decision="no_candidates"` with `reason="no_candidates"`.
+- Audit row schema is exact: `item_id_A,item_id_B,score,retrieval_score,top1_top2_margin,source,decision,reason,llm_confidence`. `source` is the constant `"deterministic"` for every Phase 7 audit row; `llm_confidence` is always empty.
+- Decision mapping (locked by tests): `selected` -> `decision=accepted`, `reason=ok`; `below_min_score`/`below_min_margin` -> `decision=below_threshold`, `item_id_B=top_item_id_b`; `all_rejected` -> `decision=rejected_by_rule`, `item_id_B=rejected[0][0]`, `reason=rejected[0][1]`; `no_candidates` -> `decision=no_candidates`. `top1_top2_margin` is serialized as an empty string when `SelectionResult.margin is None` (single-survivor case), never as `0.0`.
+- `output.write_matches` writes `item_id_A,item_id_B` followed by accepted pairs in pipeline insertion order. `output.write_matches_audit` writes the locked 9-column header followed by audit rows. `output.validate_matches_csv(path, valid_ids_a, valid_ids_b, min_rows, required_pairs) -> ValidationResult(ok, errors, row_count)` collects header / numeric / membership / dedup / required-pair / `min_rows` violations into a single `errors` list and never raises on data violations. The duplicate check fires even when the duplicate row is byte-identical to its twin. `min_rows` is always honored as supplied; the CLI's `--allow-under-min-rows` is a CLI concern only.
+- CLI (`scripts/run_pipeline.py`): argparse with `--a-csv`, `--b-csv`, `--matches-out`, `--audit-out`, `--min-score`, `--min-margin`, `--top-k`, `--min-rows`, `--allow-under-min-rows`, `--limit`. Prints a Phase 7 banner, the PipelineResult counts, and the ValidationResult summary; exits non-zero if validation fails. Required-pair gate is hard-coded to the two PDF regressions. The CLI script also adds the project root to `sys.path` so it is runnable from a clean checkout without editable installs.
+- `SelectionResult.top_item_id_b` (default `None`) is populated as: `selected` -> equals `selected_item_id_b`; `below_min_score`/`below_min_margin` -> top scored survivor's `item_id` (resolved at sort time, not by the pipeline); `no_candidates`/`all_rejected` -> `None`. Pipeline never duplicates `select_best` logic; `runner_up_item_id_b` is not used as a fallback.
+
+Verification:
+
+- Baseline before changes: `git status --short` clean; `python3 -m pytest -q` -> 264 passed.
+- Red phase: `python3 -m pytest tests/test_pipeline_fixtures.py tests/test_output_validation.py tests/test_scoring.py -q` -> 2 collection errors (`ModuleNotFoundError: No module named 'betterbasket_matcher.pipeline'` / `'betterbasket_matcher.output'`) plus 6 `AttributeError: ... no attribute 'top_item_id_b'` failures from the scoring extensions.
+- Green phase per file: `python3 -m pytest tests/test_scoring.py -q` -> 30 passed; `python3 -m pytest tests/test_output_validation.py -q` -> 17 passed; `python3 -m pytest tests/test_pipeline_fixtures.py -q` -> 25 passed.
+- Full suite: `python3 -m pytest -q` -> 312 passed (264 baseline + 48 new). No regressions.
+- CLI fixture smoke: `python3 scripts/run_pipeline.py --a-csv tests/fixtures/mini_a.csv --b-csv tests/fixtures/mini_b.csv --matches-out /tmp/bb_matches.csv --audit-out /tmp/bb_matches_audit.csv --allow-under-min-rows --min-rows 1 --limit 50` -> exit 0; counts: `valid_a=38 quarantined_a=1 valid_b=30 in_scope_a=36 accepted=9 rejected_by_rule=14 below_threshold=2 no_candidates=13`; `validation: ok=True row_count=9 errors=0`. PDF regressions visible in audit output: `2197626,92544,...,deterministic,accepted,ok,` and `1929544,105624,...,deterministic,accepted,ok,`. Quarantined A id (`" | Pack of 12"`) absent from both files.
+- `git diff --stat -- tests/fixtures betterbasket_matcher/io.py betterbasket_matcher/normalize.py betterbasket_matcher/taxonomy.py betterbasket_matcher/scope.py betterbasket_matcher/retrieval.py betterbasket_matcher/rules.py` -> empty. `git status --short` shows exactly the seven Phase 7 deltas (5 new files + scoring.py + test_scoring.py).
+- All 7 expected MATCH rows from `tests/fixtures/expected_matches.csv` are present verbatim in `matches.csv`; all 10 NO_MATCH `item_id_A` values are absent from `matches.csv` and have audit rows with `decision in {rejected_by_rule, below_threshold, no_candidates}`. The fixture pipeline test would have stopped and reported any oracle failure; none occurred.
+
+Open design notes for Phase 8 (full dataset run):
+
+- The CLI is reproducible against the real Walmart/Wegmans CSVs, but Phase 8 should: (a) run on the full `/Users/jirustaroure/Downloads/grocery_store_{a,b}_items_final.csv` paths with default `--min-rows=4000`; (b) confirm at least 4,000 accepted matches; (c) verify the two PDF pairs survive at scale; (d) capture the PipelineResult counts in the next handoff entry. Do not enable `--allow-under-min-rows` in production submission.
+- Provisional thresholds (`min_score=0.55`, `min_margin=0.05`) cleared all 7 mini-fixture MATCH cases without weakening. They are unverified at scale; Phase 9 calibration may tune them. If accepted_count is far from 4,000 on the full dataset, calibrate before declaring submission ready.
+- 2 incidental filler matches landed on the mini fixtures (A `9000105` Pepsi -> B `9100105` Pepsi and A `9000107` Great Value Mozzarella -> B `9100107` Wegmans Mozzarella). Both look correct on inspection; they are not part of the oracle but do not regress it.
+- The audit CSV is one row per valid A processed. For the full dataset (~233k A rows minus 5 quarantined minus out-of-scope), the audit file will be on the order of hundreds of MB. If that becomes inconvenient, Phase 8 can add a streaming writer or a downsampled audit; the function signature already supports an `Iterable`.
+- `--limit` is a fixture/dev convenience and is not exposed for the production submission; document this in the Phase 12 polish step.
+- Three B `c1` strings (`Soups`, `Nut Butters & Spreads`, `Baking`, plus several others observed in mini_b: `Cereals & Oatmeal`, `Bars & Crackers`, `Coffee & Tea`, `Cooking Oils & Vinegars`, `Chips & Pretzels`) currently land at `group=None` and contribute to the `no_candidates` audit count. Phase 9 calibration is the place to decide whether widening `_B_GROCERY_C1` recovers measurable recall.
+- The two `below_threshold` audit rows on the mini fixtures are A `9000118` Prego (one survivor below 0.55 because the only group-compatible B is Heinz Ketchup) and A `9000120` Great Value Ranch Dressing (similar). Both correctly choose not to emit a match; the Phase 8 calibration loop should sanity-check whether the 0.55 floor over-suppresses real matches at scale.
+
+Blockers: none.
+
+Next suggested action: Phase 8 — full dataset run. Use `python3 scripts/run_pipeline.py --a-csv /Users/jirustaroure/Downloads/grocery_store_a_items_final.csv --b-csv /Users/jirustaroure/Downloads/grocery_store_b_items_final.csv --matches-out matches.csv --audit-out matches_audit.csv` (no `--allow-under-min-rows`, no `--limit`), record runtime + PipelineResult counts + validation outcome, and confirm both PDF regressions survive at scale before progressing to Phase 9 threshold calibration.
+
