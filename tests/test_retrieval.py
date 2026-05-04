@@ -234,3 +234,126 @@ class TestRetrieverEdgeCases:
         pa = _np_a("2197626", a_by_id)
         with pytest.raises(RuntimeError):
             r.query(pa, k=5)
+
+
+# ---------------------------------------------------------------------------
+# Phase 10A lock-in: retrieval optimization from the prior Codex pass
+# ---------------------------------------------------------------------------
+
+class TestPhase10APrecomputedCompatStructures:
+    """fit() now precomputes per-query-group compatible indices and submatrices."""
+
+    def test_compat_structures_exist_after_fit(self, fitted_retriever):
+        assert hasattr(fitted_retriever, "_compat_indices_by_group")
+        assert hasattr(fitted_retriever, "_compat_matrix_by_group")
+        assert isinstance(fitted_retriever._compat_indices_by_group, dict)
+        assert isinstance(fitted_retriever._compat_matrix_by_group, dict)
+        assert len(fitted_retriever._compat_indices_by_group) > 0
+        # Both dicts share the same key set.
+        assert set(fitted_retriever._compat_indices_by_group.keys()) == set(
+            fitted_retriever._compat_matrix_by_group.keys()
+        )
+
+    def test_compat_indices_match_groups_compatible(self, fitted_retriever):
+        from betterbasket_matcher.taxonomy import groups_compatible
+
+        for query_group, indices in fitted_retriever._compat_indices_by_group.items():
+            expected = [
+                i
+                for i, b_group in enumerate(fitted_retriever._b_groups)
+                if groups_compatible(query_group, b_group)
+            ]
+            assert list(indices) == expected, (
+                f"compat indices for {query_group!r} disagree with groups_compatible"
+            )
+            mat = fitted_retriever._compat_matrix_by_group[query_group]
+            assert mat.shape[0] == len(expected)
+            # Submatrix rows must equal the corresponding rows of the full matrix.
+            for local, global_idx in enumerate(indices):
+                row_full = fitted_retriever._matrix[int(global_idx)].toarray()
+                row_sub = mat[local].toarray()
+                assert (row_full == row_sub).all()
+
+
+class TestPhase10AMissingGroupReturnsEmpty:
+    """An A whose group has no compatible B rows must short-circuit to []."""
+
+    def test_query_with_group_absent_from_dict_returns_empty(self):
+        # Fit a retriever on a single pantry-only B corpus; query an A whose
+        # group is 'snacks'. 'snacks' will not appear in the precomputed dict.
+        from betterbasket_matcher.taxonomy import assign_matchable_group
+
+        b_pantry = NormalizedProduct(
+            item_id="B_pantry",
+            source="B",
+            category_0="Grocery",
+            category_1="Pantry",
+            retrieval_text="organic tomato sauce 8oz",
+        )
+        retriever = TfidfRetriever().fit([b_pantry])
+
+        a_snacks = NormalizedProduct(
+            item_id="A_snacks",
+            source="A",
+            category_0="Food",
+            category_1="Snacks",
+            retrieval_text="potato chips salted",
+        )
+        assert assign_matchable_group(a_snacks) == "snacks"
+        assert "snacks" not in retriever._compat_indices_by_group
+        assert retriever.query(a_snacks, k=10) == []
+
+
+class TestPhase10ANoZeroScoreCandidates:
+    """Sparse retrieval must drop B rows with zero lexical overlap."""
+
+    def test_zero_overlap_b_is_excluded(self):
+        # Two pantry-group B rows: one shares all tokens with the A query,
+        # one shares none. The zero-overlap B must not be returned.
+        b_overlap = NormalizedProduct(
+            item_id="B_overlap",
+            source="B",
+            category_0="Grocery",
+            category_1="Pantry",
+            retrieval_text="organic tomato sauce 8oz",
+        )
+        b_zero = NormalizedProduct(
+            item_id="B_zero",
+            source="B",
+            category_0="Grocery",
+            category_1="Pantry",
+            retrieval_text="qzxqzx vbnvbn",
+        )
+        retriever = TfidfRetriever().fit([b_overlap, b_zero])
+
+        a = NormalizedProduct(
+            item_id="A_q",
+            source="A",
+            category_0="Food",
+            category_1="Pantry",
+            retrieval_text="organic tomato sauce 8oz",
+        )
+        cands = retriever.query(a, k=10)
+        ids = {c.item_id_b for c in cands}
+        assert "B_overlap" in ids
+        assert "B_zero" not in ids
+        assert all(c.score > 0.0 for c in cands)
+
+
+class TestPhase10ADeterminism:
+    """Two calls to query() with the same A return identical (id, score, rank)."""
+
+    def test_full_tuple_equality(self, fitted_retriever, a_by_id):
+        pa = _np_a("1929544", a_by_id)
+        a = [(c.item_id_b, c.score, c.rank) for c in fitted_retriever.query(pa, k=20)]
+        b = [(c.item_id_b, c.score, c.rank) for c in fitted_retriever.query(pa, k=20)]
+        assert a == b
+
+
+class TestPhase10APdfRetrievalRegression:
+    """A 1929544 (Great Value Organic Tomato Sauce 8 oz) top-50 must contain B 105624."""
+
+    def test_top50_contains_b_105624(self, fitted_retriever, a_by_id):
+        pa = _np_a("1929544", a_by_id)
+        cands = fitted_retriever.query(pa, k=50)
+        assert "105624" in {c.item_id_b for c in cands}

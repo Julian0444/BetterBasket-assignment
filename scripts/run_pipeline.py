@@ -1,12 +1,11 @@
-"""Phase 7 fixture/dev CLI for the BetterBasket matcher.
+"""CLI for the BetterBasket matcher.
 
 Wires the deterministic pipeline against any pair of A/B CSVs and writes
 ``matches.csv`` and ``matches_audit.csv``. After writing, validates the
 matches file against the supplied A/B id sets and required-pair gate.
 
-This is the fixture/dev entry point. The full Walmart/Wegmans dataset run is
-Phase 8 territory; the ``--allow-under-min-rows`` flag exists to make small
-fixture runs reportable here without lowering the production min_rows floor.
+The ``--allow-under-min-rows`` flag exists to make small fixture/dev runs
+reportable without lowering the production min_rows floor.
 """
 from __future__ import annotations
 
@@ -36,9 +35,8 @@ DEFAULT_REQUIRED_PAIRS: Dict[str, str] = {
 def _parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=(
-            "Run the BetterBasket Phase 7 deterministic matching pipeline "
-            "and emit matches.csv + matches_audit.csv. Phase 8 owns the full "
-            "dataset run."
+            "Run the BetterBasket deterministic matching pipeline and emit "
+            "matches.csv + matches_audit.csv."
         )
     )
     p.add_argument("--a-csv", required=True, help="Path to Store A CSV")
@@ -73,8 +71,7 @@ def main(argv=None) -> int:
     args = _parse_args(argv)
 
     print(
-        "[Phase 7 fixture/dev pipeline] running deterministic matcher; "
-        "Phase 8 owns the full dataset run.",
+        "[BetterBasket pipeline] running deterministic matcher.",
         flush=True,
     )
 

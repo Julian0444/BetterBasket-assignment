@@ -271,3 +271,202 @@ class TestBTaxonomy:
     def test_more_departments_kitchen_and_home(self):
         p = _np("B", category_0="More Departments", category_1="Kitchen and Home")
         assert assign_matchable_group(p) == "kitchen_home"
+
+
+# ---------------------------------------------------------------------------
+# 16. Phase 10A lock-in: taxonomy expansions from the prior Codex pass
+# ---------------------------------------------------------------------------
+
+class TestPhase10AAFoodC1Expansions:
+    """A-side Food > category_1 expansions added by Codex."""
+
+    @pytest.mark.parametrize("c1,expected", [
+        ("Snacks Cookies and Chips", "snacks"),
+        ("Shop All Candy", "candy"),
+        ("Baking", "pantry"),
+        ("International Food", "pantry"),
+        ("Breakfast and Cereal", "pantry"),
+        ("Organic Shop", "pantry"),
+        ("Coffee", "beverages"),
+        ("Bakery and Bread", "bakery"),
+        ("Shop All Bread and Bakery", "bakery"),
+        ("Holiday Baked Goods", "bakery"),
+        ("Deli", "prepared_foods"),
+        ("Alcohol", "wine_beer_spirits"),
+    ])
+    def test_a_food_c1(self, c1, expected):
+        p = _np("A", category_0="Food", category_1=c1)
+        assert assign_matchable_group(p) == expected
+
+
+class TestPhase10AAMeatSeafoodOverride:
+    """A-side override: c1='meat and seafood' AND 'seafood' in c2 -> seafood."""
+
+    def test_override_fires_when_seafood_in_c2(self):
+        p = _np(
+            "A",
+            category_0="Food",
+            category_1="Meat and Seafood",
+            category_2="Fresh Seafood",
+        )
+        assert assign_matchable_group(p) == "seafood"
+
+    def test_override_does_not_fire_without_seafood_in_c2(self):
+        p = _np(
+            "A",
+            category_0="Food",
+            category_1="Meat and Seafood",
+            category_2="Beef",
+        )
+        # Sanity guard: without 'seafood' in c2 the override is bypassed and
+        # the c1 dispatch returns 'meat'. This pins the override behavior so
+        # future widening cannot silently re-route plain meat to seafood.
+        assert assign_matchable_group(p) == "meat"
+
+
+class TestPhase10ABGroceryC1Expansions:
+    """B-side Grocery > category_1 expansions added by Codex."""
+
+    @pytest.mark.parametrize("c1,expected", [
+        ("Canned Tomatoes and Italian Pantry", "pantry"),
+        ("Pasta and Pasta Sauce", "pantry"),
+        ("Salad Dressing and Condiments", "pantry"),
+        ("Soups and Broths", "pantry"),
+        ("Baking and Baking Ingredients", "pantry"),
+        ("Breakfast", "pantry"),
+        ("International Foods", "pantry"),
+        ("Kosher Grocery", "pantry"),
+        ("Nut Butters Jelly and Honey", "pantry"),
+        ("Oils and Vinegars", "pantry"),
+        ("Chips and Snack Foods", "snacks"),
+        ("Protein and Snack Bars", "snacks"),
+        ("Pet", "pets"),
+    ])
+    def test_b_grocery_c1(self, c1, expected):
+        p = _np("B", category_0="Grocery", category_1=c1)
+        assert assign_matchable_group(p) == expected
+
+
+class TestPhase10ABMoreDepartmentsC1:
+    """B-side More Departments > category_1 dispatch added by Codex."""
+
+    @pytest.mark.parametrize("c1,expected", [
+        ("Health and Wellness", "health"),
+        ("Household Essentials", "household"),
+        ("Baby and Toddler", "baby"),
+    ])
+    def test_b_more_departments_c1(self, c1, expected):
+        p = _np("B", category_0="More Departments", category_1=c1)
+        assert assign_matchable_group(p) == expected
+
+
+class TestPhase10ABPersonalCareAndMakeup:
+    """B-side More Departments > Personal Care and Makeup dispatch."""
+
+    @pytest.mark.parametrize("c2", [
+        "Makeup and Nail Care",
+        "Hair Care",
+        "Facial Skin Care",
+        "Lip Care",
+    ])
+    def test_beauty_c2(self, c2):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Personal Care and Makeup",
+            category_2=c2,
+        )
+        assert assign_matchable_group(p) == "beauty"
+
+    @pytest.mark.parametrize("c2", [
+        "Bath and Body",
+        "Oral Care",
+        "Deodorant and Antiperspirant",
+        "Hand and Body Lotion",
+        "Feminine Products",
+        "Shaving and Grooming",
+        "Travel",
+        "Hand Soap",
+        "Sun Care",
+    ])
+    def test_personal_care_c2(self, c2):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Personal Care and Makeup",
+            category_2=c2,
+        )
+        assert assign_matchable_group(p) == "personal_care"
+
+    def test_unknown_c2_defaults_to_personal_care(self):
+        # Codex documented fallback: unknown c2 under Personal Care and Makeup
+        # routes to personal_care, not None.
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Personal Care and Makeup",
+            category_2="Mystery Subcategory",
+        )
+        assert assign_matchable_group(p) == "personal_care"
+
+
+class TestPhase10ABBulkFoods:
+    """B-side More Departments > Bulk Foods dispatch."""
+
+    @pytest.mark.parametrize("c2,expected", [
+        ("Candy", "candy"),
+        ("Gum and Mints", "candy"),
+        ("Nuts", "snacks"),
+        ("Dried Fruit", "snacks"),
+        ("Snacks", "snacks"),
+        ("Cookies", "snacks"),
+        ("Baking Ingredients", "pantry"),
+    ])
+    def test_bulk_foods(self, c2, expected):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Bulk Foods",
+            category_2=c2,
+        )
+        assert assign_matchable_group(p) == expected
+
+
+class TestPhase10ABDeli:
+    """B-side More Departments > Deli dispatch."""
+
+    @pytest.mark.parametrize("c2", ["Cheese", "Specialty Cheese"])
+    def test_deli_cheese(self, c2):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Deli",
+            category_2=c2,
+        )
+        assert assign_matchable_group(p) == "cheese"
+
+    @pytest.mark.parametrize("c2", [
+        "Sliced Ham",
+        "Sliced Turkey",
+        "Rotisserie Chicken",
+        "Roast Beef",
+        "Charcuterie",
+        "Salami",
+    ])
+    def test_deli_meat(self, c2):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Deli",
+            category_2=c2,
+        )
+        assert assign_matchable_group(p) == "meat"
+
+    def test_deli_fallback(self):
+        p = _np(
+            "B",
+            category_0="More Departments",
+            category_1="Deli",
+            category_2="Prepared Salads",
+        )
+        assert assign_matchable_group(p) == "prepared_foods"

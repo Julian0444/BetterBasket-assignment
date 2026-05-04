@@ -801,4 +801,47 @@ Blockers: none. Hand labeling of `eval/manual_eval_template.csv` is human work, 
 Next suggested action: hand-label `eval/manual_eval_template.csv`, then rerun `scripts/sample_eval.py` to populate `est_precision` per group in `eval/group_breakdown.md`. Once per-group precision is known, decide whether Phase 10 (taxonomy widening + retrieval shaping for PDF-2) is approved before any threshold changes — the threshold grid alone proves no calibration cell can hit the 4,000 floor, so Phase 10 algorithm work is the actual unblocker. Do not lower thresholds without per-group precision evidence.
 
 
+## Session - 2026-05-04 03:26 PDT
+
+Completed:
+
+- Phase 10A-fix: closed the technical debt Codex left when it modified `betterbasket_matcher/taxonomy.py` and `betterbasket_matcher/retrieval.py` without TDD lock-in tests. The Codex code changes were already merged on `main` before this session; this session adds the missing test coverage so future regressions are caught. No production module was modified in this session. No full pipeline run.
+- Reconciled stale top-level `## Current State` in this file. The "matcher package not implemented yet" claim at lines 5-23 is stale: `betterbasket_matcher/{io,normalize,taxonomy,scope,retrieval,rules,scoring,pipeline,output}.py` and `scripts/run_pipeline.py` all exist on `main`, the suite is green at 378 tests after this session, and a 16,218-row `matches.csv` has already been generated at `--min-score 0.55 --min-margin 0.05`. The session blocks (Phase 8, Phase 9, and this Phase 10A-fix) are the trustworthy state; the top-level summary should be rewritten in a later doc-polish pass and is intentionally not edited here to keep this session narrowly scoped.
+
+Changed files:
+
+- `tests/test_taxonomy_scope.py` (additions only; appended one block of 8 new test classes scoped to Phase 10A; existing 40 tests untouched).
+- `tests/test_retrieval.py` (additions only; appended 5 new test classes scoped to Phase 10A; existing 20 tests untouched).
+- `docs/HANDOFF.md` (this entry only).
+- `betterbasket_matcher/taxonomy.py` and `betterbasket_matcher/retrieval.py` were NOT modified in this session — verified by `diff -u /tmp/codex_taxonomy_retrieval_baseline.diff /tmp/codex_taxonomy_retrieval_after.diff` returning no differences.
+- `tests/fixtures/` was NOT modified — verified by `git diff --stat tests/fixtures/` returning empty.
+
+Behavior summary:
+
+- Taxonomy lock-in (60 new tests): every taxonomy expansion from the prior Codex pass is now pinned by a parameterized test. Coverage includes A-side `Food > {Snacks Cookies and Chips, Shop All Candy, Baking, International Food, Breakfast and Cereal, Organic Shop, Coffee, Bakery and Bread, Shop All Bread and Bakery, Holiday Baked Goods, Deli, Alcohol}`; the A-side `Meat and Seafood -> seafood` override (and its negative case where without `seafood` in c2 the override does not fire and falls back to `meat`); B-side `Grocery > {Canned Tomatoes and Italian Pantry, Pasta and Pasta Sauce, Salad Dressing and Condiments, Soups and Broths, Baking and Baking Ingredients, Breakfast, International Foods, Kosher Grocery, Nut Butters Jelly and Honey, Oils and Vinegars, Chips and Snack Foods, Protein and Snack Bars, Pet}`; B-side `More Departments > {Health and Wellness, Household Essentials, Baby and Toddler}`; B-side `More Departments > Personal Care and Makeup` dispatch into beauty (`Makeup and Nail Care, Hair Care, Facial Skin Care, Lip Care`) vs personal_care (`Bath and Body, Oral Care, Deodorant and Antiperspirant, Hand and Body Lotion, Feminine Products, Shaving and Grooming, Travel, Hand Soap, Sun Care`) including the unknown-c2 fallback; B-side `More Departments > Bulk Foods` (candy/gum, nuts/dried fruit/snacks/cookies, baking); B-side `More Departments > Deli` (cheese, ham/turkey/chicken/beef/charcuterie/salami, fallback). The two PDF taxonomy regressions (real A 1929544 and real B 105624 both -> `pantry`) are already locked by the pre-existing `TestTomatoSaucePantry`; they were not duplicated per the "avoid duplicate tests" instruction.
+- Retrieval lock-in (6 new tests): `_compat_indices_by_group` and `_compat_matrix_by_group` exist after `fit()` and share the same key set; for every query group present, the indices match exactly the B rows where `groups_compatible(query_group, b_group)` is True, and each submatrix row equals the corresponding row of the full matrix; an A whose group is absent from the precomputed dict short-circuits to `[]`; zero-overlap B rows in a compatible group are never returned (built a 2-row B corpus where one B has zero shared word/char-wb tokens with the A query and is correctly excluded); `query()` is deterministic across two consecutive calls on `(item_id_b, score, rank)` triples; A 1929544 top-50 retrieval contains B 105624 (PDF-2 retrieval lock).
+- No new hard rules added. Hard-rule changes belong in a separate TDD/preflight phase after calibration, per the explicit Phase 10A-fix scope.
+
+Verification:
+
+- Baseline diff capture (before edits): `git diff -- betterbasket_matcher/taxonomy.py betterbasket_matcher/retrieval.py > /tmp/codex_taxonomy_retrieval_baseline.diff` -> 248 lines (Codex's pre-existing diff vs `main`).
+- Targeted: `python3 -m pytest tests/test_taxonomy_scope.py tests/test_retrieval.py -v` -> 126 passed in 0.55s. Of those, 66 are new Phase 10A lock-in tests (60 taxonomy, 6 retrieval); the remaining 60 pre-existing tests are unchanged.
+- New-test isolation: `python3 -m pytest tests/test_taxonomy_scope.py -k Phase10A --collect-only -q` -> `60/100 tests collected (40 deselected)`; `python3 -m pytest tests/test_retrieval.py -k Phase10A --collect-only -q` -> `6/26 tests collected (20 deselected)`.
+- Full suite: `python3 -m pytest -q` -> 378 passed in 0.67s. Test count grew monotonically: 312 (pre-Codex baseline recorded by Phase 8/9) -> 378 (this session). +66 tests, all passing.
+- After-edit diff comparison: `git diff -- betterbasket_matcher/taxonomy.py betterbasket_matcher/retrieval.py > /tmp/codex_taxonomy_retrieval_after.diff` then `diff -u /tmp/codex_taxonomy_retrieval_baseline.diff /tmp/codex_taxonomy_retrieval_after.diff` -> identical (zero output), proving the two production modules were not touched in this session.
+- Fixture guard: `git diff --stat tests/fixtures/` -> empty. Frozen oracle CSVs untouched.
+- Credentials guard: `find . -name "openai_creds*" -not -path "./.git/*" -not -path "./node_modules/*"` -> empty. No OpenAI credential file exists inside the repo.
+- No full pipeline run was performed in this session.
+- No commit was made in this session.
+
+Open notes for Phase 10B (Restore Context):
+
+- The current `matches.csv` (16,218 rows at `--min-score 0.55 --min-margin 0.05`) has documented false positives: Great Value Cut Broccoli -> Wegmans Frozen Butter Chicken; Great Value Pure Pumpkin -> Wegmans Pumpkin Seeds; Great Value Sandwich Bags -> Wegmans Bathroom Cups. These are precision regressions introduced by the lower threshold, not by the taxonomy/retrieval changes locked in this session.
+- `eval/phase9_diagnostics.md` was generated against the prior 524-row `(0.82, 0.08)` run and is stale relative to the current 16,218-match output. Phase 10B will need to regenerate the sample eval template against the new audit CSV before precision can be re-estimated per group.
+- Phase 10B priority is threshold calibration with a fresh hand-labeled sample, NOT new hard rules and NOT taxonomy widening. The threshold/score-count tradeoff observed by Codex (`0.55 -> 16,218`, `0.75 -> 4,394`, `0.80 -> 2,162`) suggests `~0.75` is the natural precision-first floor that still clears the 4,000-row contract.
+
+Blockers: none.
+
+Next suggested action: Phase 10B Restore Context. Read `matches_audit.csv`, regenerate `eval/manual_eval_template.csv` against the current (0.55-floor) audit, hand-label the gray-zone bucket, and produce per-group precision estimates. Lock the chosen threshold cell in a new test file before changing any defaults.
+
 

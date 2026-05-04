@@ -8,7 +8,7 @@ scoring, and pipeline orchestration are deferred to Phases 6-8.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
@@ -54,6 +54,8 @@ class TfidfRetriever:
         self._matrix: Optional[csr_matrix] = None
         self._products: List[NormalizedProduct] = []
         self._b_groups: List[Optional[str]] = []
+        self._compat_indices_by_group: Dict[str, np.ndarray] = {}
+        self._compat_matrix_by_group: Dict[str, csr_matrix] = {}
 
     # ------------------------------------------------------------------
     # Fit
@@ -95,6 +97,20 @@ class TfidfRetriever:
 
         self._products = kept
         self._b_groups = [assign_matchable_group(p) for p in kept]
+        known_groups = sorted({g for g in self._b_groups if g})
+        for query_group in known_groups:
+            indices = np.array(
+                [
+                    i
+                    for i, b_group in enumerate(self._b_groups)
+                    if groups_compatible(query_group, b_group)
+                ],
+                dtype=int,
+            )
+            if indices.size:
+                self._compat_indices_by_group[query_group] = indices
+                self._compat_matrix_by_group[query_group] = self._matrix[indices]
+
         self._fitted = True
         return self
 
@@ -110,12 +126,9 @@ class TfidfRetriever:
         if a_group is None:
             return []
 
-        # Compatible-group mask
-        mask = np.array(
-            [groups_compatible(a_group, g) for g in self._b_groups],
-            dtype=bool,
-        )
-        if not mask.any():
+        compat_idx = self._compat_indices_by_group.get(a_group)
+        compat_matrix = self._compat_matrix_by_group.get(a_group)
+        if compat_idx is None or compat_matrix is None or compat_idx.size == 0:
             return []
 
         text = build_retrieval_text(product_a)
@@ -126,27 +139,33 @@ class TfidfRetriever:
         qc = self._char.transform([text])
         q = hstack([qw, qc]).tocsr()
 
-        # Cosine-like dot product against the L2-normalized index rows.
-        # Result shape: (n_b,)
-        scores = (q @ self._matrix.T).toarray().ravel()
-
-        # Restrict to compatible Bs
-        compat_idx = np.where(mask)[0]
-        compat_scores = scores[compat_idx]
-
-        if compat_idx.size == 0:
+        # Cosine-like dot product against compatible B rows only. Keep this
+        # sparse: full-dataset runs mostly need the non-zero lexical overlaps,
+        # and zero-score candidates cannot pass the downstream score floor.
+        score_row = (q @ compat_matrix.T).tocsr()
+        if score_row.nnz == 0:
             return []
+        compat_scores = score_row.data
+        local_indices = score_row.indices
 
-        k_eff = min(k, compat_idx.size)
-        # Sort all compatible by score desc then by item_id_b asc for stability
+        k_eff = min(k, compat_scores.size)
+        if compat_scores.size > k_eff:
+            top_idx = np.argpartition(-compat_scores, k_eff - 1)[:k_eff]
+        else:
+            top_idx = np.arange(compat_scores.size)
+
+        # Sort top candidates by score desc then by item_id_b asc for stability.
         order = sorted(
-            range(compat_idx.size),
-            key=lambda i: (-float(compat_scores[i]), self._products[compat_idx[i]].item_id),
-        )[:k_eff]
+            top_idx,
+            key=lambda i: (
+                -float(compat_scores[i]),
+                self._products[int(compat_idx[local_indices[i]])].item_id,
+            ),
+        )
 
         return [
             Candidate(
-                item_id_b=self._products[compat_idx[i]].item_id,
+                item_id_b=self._products[int(compat_idx[local_indices[i]])].item_id,
                 score=float(compat_scores[i]),
                 rank=rank,
             )

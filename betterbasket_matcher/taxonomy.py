@@ -65,16 +65,28 @@ _A_FOOD_C1: dict = {
     "condiments": "pantry",
     "beverages": "beverages",
     "snacks": "snacks",
+    "snacks cookies and chips": "snacks",
     "candy": "candy",
+    "shop all candy": "candy",
     "frozen": "frozen",
     "frozen foods": "frozen",
+    "baking": "pantry",
+    "international food": "pantry",
+    "breakfast and cereal": "pantry",
+    "organic shop": "pantry",
+    "coffee": "beverages",
     "meat": "meat",
     "meat and seafood": "meat",
     "seafood": "seafood",
     "bakery": "bakery",
     "bread and bakery": "bakery",
+    "bakery and bread": "bakery",
+    "shop all bread and bakery": "bakery",
+    "holiday baked goods": "bakery",
+    "deli": "prepared_foods",
     "produce": "produce",
     "fresh produce": "produce",
+    "alcohol": "wine_beer_spirits",
 }
 
 _A_TOP_LEVEL: dict = {
@@ -108,6 +120,8 @@ def _assign_a(product) -> Optional[str]:
         # Dairy > Cheese override
         if c1 in ("dairy and eggs", "dairy") and "cheese" in c2:
             return "cheese"
+        if c1 == "meat and seafood" and "seafood" in c2:
+            return "seafood"
         return _A_FOOD_C1.get(c1)
 
     if c0 == "home":
@@ -124,16 +138,29 @@ def _assign_a(product) -> Optional[str]:
 
 _B_GROCERY_C1: dict = {
     "canned tomato products": "pantry",
+    "canned tomatoes and italian pantry": "pantry",
     "condiments": "pantry",
     "pantry": "pantry",
     "canned goods": "pantry",
     "pasta and sauce": "pantry",
+    "pasta and pasta sauce": "pantry",
+    "salad dressing and condiments": "pantry",
+    "soups and broths": "pantry",
+    "baking and baking ingredients": "pantry",
+    "breakfast": "pantry",
+    "international foods": "pantry",
+    "kosher grocery": "pantry",
+    "nut butters jelly and honey": "pantry",
+    "oils and vinegars": "pantry",
     "snacks": "snacks",
+    "chips and snack foods": "snacks",
+    "protein and snack bars": "snacks",
     "candy": "candy",
     "beverages": "beverages",
     "soda": "beverages",
     "baby": "baby",
     "pets": "pets",
+    "pet": "pets",
     "household": "household",
     "household essentials": "household",
     "personal care": "personal_care",
@@ -162,6 +189,34 @@ _B_TOP_LEVEL: dict = {
     "beauty": "beauty",
 }
 
+_B_MORE_DEPTS_C1: dict = {
+    "health and wellness": "health",
+    "household essentials": "household",
+    "baby and toddler": "baby",
+}
+
+_B_PERSONAL_CARE_BEAUTY_C2 = frozenset({
+    "makeup and nail care",
+    "hair care",
+    "facial skin care",
+    "lip care",
+})
+
+_B_PERSONAL_CARE_C2 = frozenset({
+    "bath and body",
+    "oral care",
+    "deodorant and antiperspirant",
+    "hand and body lotion",
+    "feminine products",
+    "shaving and grooming",
+    "travel",
+    "hand soap",
+    "sun care",
+    "essential oils",
+    "cotton swabs rounds and balls",
+    "hand sanitizer",
+})
+
 
 def _assign_b(product) -> Optional[str]:
     c0 = _norm_cat(product.category_0)
@@ -173,8 +228,30 @@ def _assign_b(product) -> Optional[str]:
             return "cheese"
         return "dairy"
 
-    if c0 == "more departments" and c1 == "kitchen and home":
-        return "kitchen_home"
+    if c0 == "more departments":
+        if c1 == "kitchen and home":
+            return "kitchen_home"
+        if c1 == "personal care and makeup":
+            if c2 in _B_PERSONAL_CARE_BEAUTY_C2:
+                return "beauty"
+            if c2 in _B_PERSONAL_CARE_C2:
+                return "personal_care"
+            return "personal_care"
+        if c1 == "bulk foods":
+            if "candy" in c2 or "gum" in c2:
+                return "candy"
+            if any(t in c2 for t in ("nuts", "dried fruit", "snacks", "cookies")):
+                return "snacks"
+            if "baking" in c2:
+                return "pantry"
+            return None
+        if c1 == "deli":
+            if "cheese" in c2:
+                return "cheese"
+            if any(t in c2 for t in ("ham", "turkey", "chicken", "beef", "charcuterie", "salami")):
+                return "meat"
+            return "prepared_foods"
+        return _B_MORE_DEPTS_C1.get(c1)
 
     if c0 == "grocery":
         return _B_GROCERY_C1.get(c1)

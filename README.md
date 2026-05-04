@@ -6,7 +6,7 @@ Stores: Walmart (A) ↔ Wegmans (B)
 
 ## What this repo is
 
-A planned, deterministic, precision-first product-matching pipeline for the BetterBasket assignment. The narrative documents and the audit/probe scripts are committed; the matcher itself is the next implementation step. No `matches.csv` has been produced yet.
+An executable, deterministic, precision-first product-matching pipeline for the BetterBasket assignment. It reads the Walmart/Wegmans CSVs, normalizes product attributes, retrieves candidates with TF-IDF, applies compatibility rules, scores one best B candidate per A item, and writes the required `matches.csv` plus a richer `matches_audit.csv`.
 
 ## Canonical sources of truth
 
@@ -42,6 +42,17 @@ The two `docs/` plus the two reproducible JSON outputs are the source of truth. 
 - B duplicate-like groups: **2,796 groups** spanning **6,320 rows** — mostly size/pack variants of the same product concept (e.g. Wegmans Organic Tomato Sauce in 8, 15, 29 oz).
 - PDF examples confirmed in the data: A `2197626` ↔ B `92544` (Chobani 5.3 oz honey blended yogurt) and A `1929544` ↔ B `105624` (organic tomato sauce, 8 oz).
 
+## Current validated output
+
+The current generated `matches.csv` contains **16,218** data rows, above the assignment minimum of 4,000. It validates with:
+
+- exact header `item_id_A,item_id_B`;
+- numeric A/B IDs that exist in the validated source files;
+- no duplicate `item_id_A`;
+- required PDF regressions: A `2197626` → B `92544`, and A `1929544` → B `105624`.
+
+`matches_audit.csv` contains one audit row for each valid A item processed, including score, retrieval score, decision, and reason.
+
 ## Retrieval probe (already run)
 
 `scripts/retrieval_probe.py` indexed all 55,516 B rows and tested two query modes (`brand_included` and `suppress_private_label`). Highlights:
@@ -70,7 +81,7 @@ The full version lives in `docs/algorithm_recommendation.md`. Summary:
 12. **Embeddings (optional, deferred).** Considered as a future recall layer for semantic private-label/fresh items; not part of the first deliverable.
 13. **Avoided.** All-pairs comparison, LLM-first design, UPC-first design, fuzzy-only matching, requiring brand equality globally, accepting same-name different-size variants without size hard rules, and treating any of the decoy columns as populated.
 
-The first deliverable targets **4,000–7,000 high-confidence matches**; precision is preferred over recall, and recall is expanded only after the deterministic floor is solid.
+The assignment floor is **4,000** matches; the current validated run emits **16,218** deterministic matches. Precision is still preferred over recall, and any further recall expansion should be done with audit review and/or optional GPT-5 nano arbitration on gray-zone candidates.
 
 ## Output validation contract
 
@@ -107,7 +118,7 @@ BetterBasket-assignment/
 └── [BetterBasket] Engineering Technical Assessment.pdf
 ```
 
-The matcher package itself (`betterbasket_matcher/`, `scripts/run_pipeline.py`, `tests/test_*.py`) is the next planned implementation step.
+The matcher package itself lives in `betterbasket_matcher/`, with `scripts/run_pipeline.py` as the executable entry point and `tests/test_*.py` covering normalization, taxonomy, retrieval, rules, scoring, output validation, and fixture-level pipeline behavior.
 
 ## Reproducing the audit and probe
 
