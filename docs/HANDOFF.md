@@ -613,3 +613,192 @@ Blockers: none.
 
 Next suggested action: Phase 8 — full dataset run. Use `python3 scripts/run_pipeline.py --a-csv /Users/jirustaroure/Downloads/grocery_store_a_items_final.csv --b-csv /Users/jirustaroure/Downloads/grocery_store_b_items_final.csv --matches-out matches.csv --audit-out matches_audit.csv` (no `--allow-under-min-rows`, no `--limit`), record runtime + PipelineResult counts + validation outcome, and confirm both PDF regressions survive at scale before progressing to Phase 9 threshold calibration.
 
+## Session - 2026-05-03 22:30 PDT
+
+Completed:
+
+- Phase 8: ran the deterministic pipeline against the full Walmart/Wegmans CSVs at the explicit Phase 8 thresholds (`--min-score 0.82`, `--min-margin 0.08`, `--top-k 50`) for both smoke and full runs. No code changes were required to complete the run; the pipeline itself is healthy. The output contract floor of >= 4,000 rows was NOT met (524 accepted), and both PDF regressions failed validation at the 0.82 floor. Per the Phase 8 ruleset, did NOT lower thresholds, did NOT switch to CLI defaults, did NOT widen taxonomy, did NOT touch scoring/rules. All findings handed off to Phase 9 calibration.
+- CSV access blocker resolved by relocating the real CSVs out of `~/Downloads` (TCC-protected for the Cursor.app process tree) to `/tmp/betterbasket_data/`. The Downloads paths cited in the prior session block are still the canonical source; `/tmp/betterbasket_data/` is a per-session working copy and not committed.
+
+Changed files:
+
+- `docs/HANDOFF.md` (this entry only). No `betterbasket_matcher/` or `scripts/` or `tests/` files were modified. `git status --short` is clean apart from this handoff edit and the two output artifacts (`matches.csv`, `matches_audit.csv`).
+
+Exact commands run:
+
+- Preflight: `git status --short`, `git diff --stat`, `ls -lh /tmp/betterbasket_data/grocery_store_{a,b}_items_final.csv`.
+- Baseline tests: `python3 -m pytest -q` -> 312 passed in 0.67s.
+- Smoke: `time python3 scripts/run_pipeline.py --a-csv /tmp/betterbasket_data/grocery_store_a_items_final.csv --b-csv /tmp/betterbasket_data/grocery_store_b_items_final.csv --matches-out /tmp/smoke_matches.csv --audit-out /tmp/smoke_audit.csv --min-score 0.82 --min-margin 0.08 --top-k 50 --limit 2000 --allow-under-min-rows`.
+- Full: `time python3 scripts/run_pipeline.py --a-csv /tmp/betterbasket_data/grocery_store_a_items_final.csv --b-csv /tmp/betterbasket_data/grocery_store_b_items_final.csv --matches-out matches.csv --audit-out matches_audit.csv --min-score 0.82 --min-margin 0.08 --top-k 50`.
+- Validation + audit evidence: in-process Python using `validate_matches_csv` from `betterbasket_matcher.output` plus `csv` + `collections.Counter` + `statistics`.
+
+Smoke run result:
+
+- Wall time: 21.46s user, 21.16s total (well under 5 min).
+- Counts: `valid_a=2000 quarantined_a=5 valid_b=55516 in_scope_a=986 accepted=1 rejected_by_rule=38 below_threshold=124 no_candidates=1837`. Sum 1+38+124+1837=2000 = valid_a (audit completeness invariant holds).
+- Validation: `ok=False errors=2` (both required-pair gate misses, expected at `--limit 2000` because the PDF A IDs are not in the first 2000 source rows).
+- Smoke deemed healthy under the preflight definition: exit cleanly, no traceback, files written, audit count matches valid_a, decision counts not pathological.
+
+Full run result:
+
+- Wall time: 1400.99s user, 23:32.68 total (within the expected 15-30 min window; well below the 60 min hard ceiling).
+- Counts: `valid_a=233194 quarantined_a=5 valid_b=55516 in_scope_a=181289 accepted=524 rejected_by_rule=8660 below_threshold=29894 no_candidates=194116`. Sum 524+8660+29894+194116=233194 = valid_a (audit completeness invariant holds at scale).
+- `matches.csv`: 524 rows, 8.1KB. `matches_audit.csv`: 233,194 rows, 15MB.
+
+Formal validation (10 checks):
+
+1. Header exactly `item_id_A,item_id_B`: PASS.
+2. row_count >= 4000: FAIL (actual 524).
+3. No duplicate item_id_A: PASS.
+4. All item_id_A and item_id_B numeric: PASS.
+5. Every item_id_A in validated A id set: PASS.
+6. Every item_id_B in validated B id set: PASS.
+7. A 2197626 -> B 92544: FAIL (A 2197626 absent from matches.csv; see PDF trace below).
+8. A 1929544 -> B 105624: FAIL (A 1929544 absent from matches.csv; see PDF trace below).
+9. A 1929544 NOT -> B 103620 or 1086860: PASS (vacuously — A absent).
+10. Quarantined A ids absent from matches.csv AND matches_audit.csv: PASS (zero leak).
+
+Decision distribution (full audit):
+
+- accepted: 524 (0.22%)
+- rejected_by_rule: 8,660 (3.71%)
+- below_threshold: 29,894 (12.82%)
+- no_candidates: 194,116 (83.24%)
+
+Top reasons (rejected_by_rule):
+
+- brand_mismatch: 4,314
+- national_vs_private_label: 2,244
+- size_mismatch: 1,982
+- alcohol_mismatch: 113
+- storage_mismatch: 4
+- flavor_mismatch: 3
+
+Top reasons (below_threshold):
+
+- below_min_score: 29,721 (99.4%)
+- below_min_margin: 173 (0.6%)
+
+Top reasons (no_candidates, for context):
+
+- `no_candidates` literal (in-scope A with zero retrieval candidates): 142,211
+- `excluded_category` (12 Walmart-only top-level cats): 48,007
+- `excluded_home_decor`: 3,898
+
+Below-threshold score distribution (n=29,894):
+
+- min=0.234, max=0.951
+- mean=0.496, median=0.480
+- p10=0.338, p25=0.398, p50=0.480, p75=0.573, p90=0.690, p95=0.745, p99=0.809
+- 424 rows >= 0.80; 1,391 rows >= 0.75; 2,720 rows >= 0.70
+
+PDF regression traces (audit):
+
+- A 2197626 (Chobani 5.3oz): top survivor `item_id_B=92544` (CORRECT B). `score=0.7974`, `retrieval_score=1.2353`, `top1_top2_margin=0.0623`. Decision `below_threshold`, reason `below_min_score`. The algorithm chose the right B; the 0.82 floor rejected it by 0.023.
+- A 1929544 (Great Value Organic Tomato Sauce 8 oz): top survivor `item_id_B=97690` (NOT 105624; not 103620 or 1086860 either). `score=0.5894`, `retrieval_score=0.6035`, `top1_top2_margin=` (single survivor). Decision `below_threshold`, reason `below_min_score`. Here the wrong B won and is also below the floor; needs Phase 9 inspection of why 105624 did not survive (rules + retrieval interaction, possibly retrieval miss or rule-pruning of the 8oz B).
+
+Quarantine spot check:
+
+- 5 A rows quarantined (matches HANDOFF Phase 2 expectation). Distinct quarantined `item_id` raw values seen: ` | Pack of 12`, ` | Pack of 6`, ` | Pack of 8`, `Acrylic Tortoise Thick Gripjaw Non Holdmetal Small Hair`. (One value duplicated across two rows accounts for the 5 vs 4-distinct mismatch; no new quarantine semantics introduced.)
+- Zero quarantined A ids appear in either output CSV. Per-phase quarantine boundary intact.
+
+Phase 8 verdict: pipeline executed end-to-end with no implementation bugs detected. The output contract failure is calibration-driven, not implementation-driven. Phase 9 input is now complete.
+
+Open notes for Phase 9 (calibration / manual eval):
+
+- The dominant signal is `no_candidates`: 142,211 in-scope A rows out of 181,289 (78.4%) returned ZERO B retrieval candidates. Even if every below_threshold row could be salvaged, the ceiling is well under what 4,000 demands per category. Phase 9 should investigate WHY in-scope A rows produce empty candidate lists at this scale: candidate filters to inspect are (a) `groups_compatible` symmetry (only `dairy<->cheese` is widened; everything else demands exact group equality), (b) `assign_matchable_group` returning `None` for B rows whose `c1` is unmapped (e.g. `Soups`, `Cereals & Oatmeal`, `Coffee & Tea`, `Cooking Oils & Vinegars`, `Bars & Crackers`, `Chips & Pretzels`, `Nut Butters & Spreads`, `Baking`), and (c) `assign_matchable_group` on the A side returning `None` for grocery rows whose category structure does not land in the existing dispatch.
+- Threshold sensitivity is shallow at 0.82: only 424 of 29,894 below_threshold rows are within 0.02 of the floor, and 1,391 within 0.07. Even very generous threshold relaxation does not bridge 524 -> 4,000 without first addressing the no_candidates volume. The two issues compound; both must be tuned in Phase 9.
+- A 2197626 / B 92544 case is a clean signal that the algorithm selects correctly on the canonical PDF case but the score floor is set above the natural ceiling for that pair. Consider re-running calibration to find the lowest min_score that admits BOTH PDF pairs without admitting documented adversarial pairs (e.g. Great Value -> Great Lakes Provolone). The audit CSV provides the data to plot precision/recall against min_score.
+- A 1929544 mapping to B 97690 (instead of B 105624) is a separate failure class: the right B did not become the top survivor. Phase 9 should pull A 1929544's full top-50 retrieval candidates, the rule outcomes for each, and the pairwise scores to understand whether B 105624 was filtered by retrieval or by rules. The fix may involve widening `_B_GROCERY_C1`, the size-match tolerance for the canned-tomato shape, or PL retrieval-text shaping for `Great Value Organic Tomato Sauce 8 oz` — none of which belong in Phase 8.
+- Brand-rule pruning is responsible for ~75% of all rule rejections (`brand_mismatch` + `national_vs_private_label` = 6,558 of 8,660). Phase 9 may want to confirm those rejections are precision-correct on a sampled basis before relaxing them; precision-first is the documented stance.
+- One residual environment note: `~/Downloads` is TCC-protected against the Cursor.app process tree on this machine. Future Phase-9+ runs in this session should keep using `/tmp/betterbasket_data/` for the source CSVs, or the user should grant Full Disk Access to `/Applications/Cursor.app` (requires a Cursor restart).
+
+Verification before reporting completion:
+
+- `python3 -m pytest -q` after the run: 312 passed (no code changes, baseline preserved).
+- Smoke run: exit captured, no traceback, audit row count == valid_a_count (2000).
+- Full run: exit captured, no traceback, audit row count == valid_a_count (233,194).
+- `validate_matches_csv` invoked formally; the 3 errors above are reported verbatim.
+- `git status --short` shows only `matches.csv`, `matches_audit.csv`, and `docs/HANDOFF.md` modified/added; no betterbasket_matcher/scripts/tests files touched.
+
+Blockers: none for Phase 9 entry. The CSV access blocker noted above is documented but does not block Phase 9 as long as the `/tmp/betterbasket_data/` working copy is preserved (or recreated).
+
+Next suggested action: Phase 9 — threshold calibration and taxonomy/coverage diagnosis. Two parallel tracks: (1) `assign_matchable_group` coverage audit on both A and B rows that landed in `no_candidates` to find unmapped category strings driving the 142,211 zero-candidate rows; (2) precision/recall sweep over `min_score` and `min_margin` against a hand-labeled sample drawn from `matches_audit.csv` (use the existing decision/reason columns to stratify). Lock the new thresholds with a new Phase 9 test file before changing any defaults in `scripts/run_pipeline.py` or `pipeline.py`.
+
+## Session - 2026-05-03 23:10 PDT
+
+Completed:
+
+- Phase 9 sampling + diagnostics artifacts. No full pipeline rerun. No `betterbasket_matcher/*` or `tests/*` modifications. All 312 baseline tests still pass. Per Phase 9 instructions, no thresholds were changed in `scripts/run_pipeline.py` defaults; calibration awaits hand labels. Output-contract failure from Phase 8 was diagnosed end-to-end and the dominant failure mode is now identified as **retrieval coverage**, not threshold calibration.
+
+Changed files:
+
+- `scripts/sample_eval.py` (new, ~570 lines).
+- `eval/manual_eval_template.csv` (new, 125 rows + header).
+- `eval/manual_eval.md` (new).
+- `eval/group_breakdown.md` (new, scaffold; recomputes from labels on rerun).
+- `eval/phase9_diagnostics.md` (new).
+- `docs/HANDOFF.md` (this entry only).
+
+Exact commands run:
+
+- Baseline preflight: `git status --short`, `git diff --stat`, `ls -lh matches.csv matches_audit.csv /tmp/betterbasket_data/grocery_store_{a,b}_items_final.csv`, `python3 -m pytest -q` -> 312 passed.
+- Audit schema check: `python3 -c "import csv; print(next(csv.reader(open('matches_audit.csv'))))"` -> 9-column locked Phase 7 header confirmed.
+- Run: `time python3 scripts/sample_eval.py --a-csv /tmp/betterbasket_data/grocery_store_a_items_final.csv --b-csv /tmp/betterbasket_data/grocery_store_b_items_final.csv --audit-csv matches_audit.csv --out-csv eval/manual_eval_template.csv --group-breakdown-out eval/group_breakdown.md --diagnostics-out eval/phase9_diagnostics.md --seed 42` -> 13.44s user, 13.57s wall. Single-pass A normalize (233,194), single-pass B normalize (55,516), TF-IDF fit on B, single A query, sampling, diagnostics aggregation.
+- Verification: `python3 -m pytest -q` -> 312 passed; `wc -l eval/manual_eval_template.csv` -> 126 (header + 125); `awk -F, 'NR==1{print NF}'` -> 13 columns.
+
+Sampling counts (deterministic, seed=42):
+
+- bucket_random_accepted: 50.
+- bucket_bottom_q1_accepted: 43 (50 - 7 dedup overlap with bucket A; both pull from the 524 accepted, bottom-Q1 is a strict subset, so collisions are expected at this volume).
+- bucket_near_miss_below_threshold: 30 (20 smallest non-blank `top1_top2_margin` + 10 blank-margin single-survivor rows; all gated `score >= 0.75`).
+- bucket_pdf_regression: 2, both PDF rows present in audit and appended verbatim with `sample_type=pdf_regression`.
+- Final template: 125 rows, dedup by `(item_id_A, item_id_B)`; PDFs always preserved.
+
+Per-group accepted distribution (from `eval/group_breakdown.md`): pantry 220, beverages 108, candy 100, frozen 62, dairy 18, cheese 11, meat 3, kitchen_home 1, produce 1. Total 524.
+
+Threshold-grid summary (post hoc from `matches_audit.csv`; no rerun, exact, 4 x 3 = 12 cells):
+
+- **None of the 12 cells reaches the 4,000-row floor.** Most permissive cell `(min_score=0.78, min_margin=0.05)` admits 1,059 rows; tightest cell `(0.84, 0.10)` admits 315.
+- The current Phase 8 cell `(0.82, 0.08)` admits exactly 524, matching the recorded `accepted_count` (sanity check on the post-hoc derivation).
+- **PDF-1 (A 2197626 -> B 92544)** is admittable at exactly one cell: `(min_score=0.78, min_margin=0.05)`. PDF-1 needs both score floor lowered to <=0.79 AND margin floor lowered to <=0.06 (audit margin = 0.0623).
+- **PDF-2 (A 1929544 -> B 105624)** is unadmittable at every cell because the chosen B in the audit is 97690, not 105624. Threshold relaxation cannot fix PDF-2; it would only embed a wrong answer.
+
+PDF-2 targeted in-process diagnostic (TF-IDF fit on full B once, single-A query, rules + scoring run on top-50 candidates):
+
+- A 1929544 in scope (`in_scope`); B 105624 present in normalized B corpus.
+- **B 105624 is NOT in A 1929544's top-50 retrieval candidates.** This is a pure retrieval miss, not a hard-rule rejection.
+- Of the 50 returned candidates, only 1 survives the hard rules (B 97690, organic tri-color quinoa blend, rank 35, retrieval 0.6035, final score 0.5894). Top-2 retrieval candidates are organic pasta in tomato sauce and fajita simmer sauce, both rejected by `national_vs_private_label`. Items 4-50 are dominated by `size_mismatch` rejections against a long tail of organic canned goods.
+- Implication: PDF-2 is a Phase 10 problem, requiring retrieval-text shaping (likely the `retrieval_text` for `Great Value Organic Tomato Sauce 8 oz` does not surface tokens that pull `organic tomato sauce` 8 oz B 105624 into the top-50) AND/OR widening the brand-/PL-bridge logic for canned-tomato shape. Explicitly out of Phase 9 scope; not patched.
+
+Coverage / `no_candidates` diagnosis (sections 5 / 6 of `phase9_diagnostics.md`):
+
+- **142,211 in-scope A rows produced zero retrieval candidates.** Of those: 59,987 have `assign_matchable_group(A) == None` (42% of the no-candidate volume) and the remaining 82,224 belong to A groups whose corresponding B groups are sparsely populated. By A group: health 20,501; personal_care 15,715; household 14,802; pets 13,158; baby 12,805; beauty 5,243.
+- **B coverage is also weak.** 28,992 of 55,516 B rows (52%) resolve to `matchable_group = None`. Top B-side null categories include `more departments > personal care and makeup > makeup & nail care` (2,020), `hair care` (1,956), `vitamins and supplements` (868), `active & sport nutrition` (821), `seasonal party supplies` (649), and several grocery subcategories (`chips & snack foods > cookies` 645, `international foods > asian` 633, `protein & snack bars` 614, `cereal` 341, `canned soup` 327).
+- The sub-problem is two-sided: A normalize_product produces well-formed groups for `food` and `beverages` paths, but `health and medicine`, `personal care`, `household essentials`, `baby`, `pets > dogs > dog food`, and `beauty` triples land at `None`. On B, similar gaps exist for `more departments > personal care and makeup` and `more departments > health and wellness`. Even bridging these two sides requires Phase 10 work in `taxonomy.py` (and possibly a less-conservative `groups_compatible`); explicitly out of Phase 9.
+
+Failure-mode classification (section 9 of `phase9_diagnostics.md`):
+
+- **Combination, dominated by retrieval / taxonomy coverage.** Threshold relaxation alone cannot reach 4,000 rows; the candidate pool simply does not exist for the majority of in-scope A.
+- Threshold-only is insufficient: even the most permissive cell tested clears 1,059 rows, far short of 4,000.
+- PDF-1 is recoverable by threshold loosening (one specific cell admits it).
+- PDF-2 is NOT recoverable by threshold loosening; the right B is absent from retrieval entirely.
+- Hard-rule pruning (75% of `rejected_by_rule` is brand/PL) needs per-group precision validation from the manual eval before any rule relaxation is proposed.
+
+Thresholds chosen / deferred:
+
+- **Deferred.** No defaults changed in `scripts/run_pipeline.py` or anywhere else. `scripts/sample_eval.py` does not run the pipeline; it only reads the existing audit. Per Phase 9 rules, threshold change is gated on hand-labeled per-group precision (the manual eval template), and Phase 10 algorithm changes are gated on user approval after diagnostics review.
+
+Verification before reporting completion:
+
+- `python3 -m pytest -q` after script run: 312 passed.
+- All 5 expected outputs exist; `wc -l` on each confirmed populated; `awk -F, 'NR==1{print NF}'` on `manual_eval_template.csv` -> 13 columns; both PDF rows visible via `grep '^pdf_regression,'`.
+- `git status --short` shows only `M docs/HANDOFF.md`, `?? eval/`, `?? matches.csv`, `?? matches_audit.csv`, `?? scripts/sample_eval.py`. No `betterbasket_matcher/*` or `tests/*` files touched.
+- Audit-derived threshold grid sanity check: `(0.82, 0.08)` cell -> 524, exactly matches Phase 8's recorded `accepted_count`.
+
+Blockers: none. Hand labeling of `eval/manual_eval_template.csv` is human work, not a pipeline blocker.
+
+Next suggested action: hand-label `eval/manual_eval_template.csv`, then rerun `scripts/sample_eval.py` to populate `est_precision` per group in `eval/group_breakdown.md`. Once per-group precision is known, decide whether Phase 10 (taxonomy widening + retrieval shaping for PDF-2) is approved before any threshold changes — the threshold grid alone proves no calibration cell can hit the 4,000 floor, so Phase 10 algorithm work is the actual unblocker. Do not lower thresholds without per-group precision evidence.
+
+
+

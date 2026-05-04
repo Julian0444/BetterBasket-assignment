@@ -2,12 +2,19 @@
 # BetterBasket assignment .gitignore
 # ---------------------------------------------------------------------------
 # What is intentionally tracked:
-#   - README.md, solution.md, solutioneasyexplained.md, app.md
-#   - betterbasket_matcher/, scripts/, tests/
+#   - README.md, solution.md, solutioneasyexplained.md, app.md, CLAUDE.md
+#   - betterbasket_matcher/, scripts/, tests/, eval/
 #   - docs/ (dataset_audit.md, algorithm_recommendation.md, HANDOFF.md,
 #           audit_stats.json, retrieval_probe_results.json, and derived .md)
 #   - pytest.ini, requirements.txt
-#   - matches.csv and matches_audit.csv (pipeline deliverables, when produced)
+#   - .claude/skills/ (agent workflow visible to reviewers)
+#
+# What is NOT tracked by default (but may be force-added at submission time):
+#   - matches.csv: the deliverable. Ignored until it passes the 10-check
+#     validation (>=4,000 rows, both PDF regressions, numeric IDs, etc.).
+#     Include it at submission time with `git add -f matches.csv`.
+#   - matches_audit.csv: ~15MB debug/audit output, regenerated every run.
+#     Kept out of git permanently; compress (.csv.gz) if ever delivered.
 # ---------------------------------------------------------------------------
 
 # --- Agent workflow ---------------------------------------------------------
@@ -108,9 +115,21 @@ scratch/
 out/local/
 runs/
 wandb/
+# TCC working copy of the real Walmart/Wegmans CSVs; see HANDOFF Phase 8.
+/tmp/betterbasket_data/
 
-# --- Generated or ad-hoc output that is NOT the final deliverable ----------
-# (matches.csv and matches_audit.csv are deliberately NOT ignored.)
+# --- Pipeline outputs -------------------------------------------------------
+# matches.csv: ignored until it passes the 10-check validation contract
+# (>=4,000 rows, both PDF regressions, no duplicate item_id_A, etc.).
+# At submission time, force-add with: git add -f matches.csv
+matches.csv
+# matches_audit.csv: 15MB debug trace regenerated every run; never commit.
+matches_audit.csv
+# smoke / temporary run artifacts
+smoke_matches.csv
+smoke_audit.csv
+
+# --- Editor swap / backup files --------------------------------------------
 *.bak
 *.swp
 *.swo
