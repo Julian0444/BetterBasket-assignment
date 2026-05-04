@@ -356,3 +356,205 @@ Open design notes for Phase 6:
 Blockers: none.
 
 Next suggested action: Phase 4 — taxonomy and scope. Create `betterbasket_matcher/taxonomy.py` with a `matchable_group` function and an `in_scope_a` predicate that excludes categories Wegmans cannot plausibly match. Drive it with the existing mini fixtures.
+
+## Session - 2026-05-03 04:15 PDT
+
+Completed:
+
+- Phase 4: implemented matchable-group taxonomy and A-side scope filter.
+- Wrote `tests/test_taxonomy_scope.py` first (TDD, 40 tests); confirmed `ModuleNotFoundError: No module named 'betterbasket_matcher.taxonomy'` before implementation.
+- Implemented public API in two modules:
+  - `betterbasket_matcher/taxonomy.py` — `assign_matchable_group(product)`, `groups_compatible(a_group, b_group)`, plus the package-internal `_norm_cat` helper.
+  - `betterbasket_matcher/scope.py` — `is_a_in_scope(product)`.
+- No retrieval, rules, scoring, pipeline, or LLM logic was added. Phase 1 fixtures, Phase 2 `io.py`, and Phase 3 `normalize.py` were not modified.
+
+Changed files:
+
+- `betterbasket_matcher/taxonomy.py` (new)
+- `betterbasket_matcher/scope.py` (new)
+- `tests/test_taxonomy_scope.py` (new)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Behavior summary:
+
+- Category normalization: `_norm_cat` lowercases, replaces `&` with `and`, collapses punctuation/whitespace, so `"Sports & Outdoors"` and `"Sports and Outdoors"` and `"Wine, Beer & Spirits"` all reach a stable form (`"sports and outdoors"`, `"wine beer and spirits"`).
+- Stable group names exposed as `taxonomy.GROUPS`: pantry, snacks, candy, beverages, dairy, cheese, frozen, produce, meat, seafood, bakery, prepared_foods, baby, pets, household, personal_care, health, beauty, kitchen_home, wine_beer_spirits.
+- Store A dispatch: prefers category fields over text. `Food > Dairy & Eggs > Cheese` overrides to `cheese`; `Food > Beverages > {Wine|Beer|Spirits|Liquor}` overrides to `wine_beer_spirits`. `Home > Kitchen & Dining` -> `kitchen_home`. Top-level mappings cover Baby/Pets/Household Essentials/Personal Care/Health and Medicine/Beauty.
+- Store B dispatch: `Dairy > Cheese` (or `cheese` in `c2`) -> `cheese`, otherwise `dairy`. `More Departments > Kitchen and Home` -> `kitchen_home`. `Grocery` is disambiguated by `c1` to pantry/beverages/snacks/candy/baby/pets/household/personal_care/health/beauty. Top-level mappings cover Frozen, Produce & Floral, Meat, Seafood, Cheese, Bakery, Prepared Foods, Wine Beer & Spirits.
+- `groups_compatible` is conservative: exact equality OR symmetric `dairy<->cheese` only. All other adjacencies (pantry<->snacks, beverages<->wine_beer_spirits, prepared_foods<->frozen, kitchen_home<->household, etc.) return False. Empty/None on either side returns False. Phase 9 calibration may widen this; Phase 4 does not.
+- A-side scope: `is_a_in_scope` returns `(True, "not_store_a")` for B; `(False, "excluded_category")` for c0 in {Toys, Clothing, Electronics, Home Improvement, Books, Cell Phones, Sports & Outdoors, Party & Occasions, Office Supplies, Auto & Tires, Arts Crafts & Sewing, Jewelry}; `(False, "excluded_home_decor")` for `Home > {Home Decor, Picture Frames, Bedding, Furniture, Rugs, Wall Art}`; `(True, "in_scope")` otherwise (including `Home > Kitchen & Dining`).
+- Functions read only existing `NormalizedProduct` fields (item_id, source, category_0/1/2, core_name). They do not access `tags` or `name_norm` and do not re-parse raw CSV.
+
+Verification:
+
+- Baseline before changes: `python3 -m pytest` -> 136 passed (Phase 3-fix baseline).
+- After tests added, before implementation: `python3 -m pytest tests/test_taxonomy_scope.py` -> collection error (`ModuleNotFoundError: No module named 'betterbasket_matcher.taxonomy'`). Expected red.
+- After implementation: `python3 -m pytest tests/test_taxonomy_scope.py -v` -> 40 passed; `python3 -m pytest` -> 176 passed (40 taxonomy/scope + 86 normalize + 37 IO + 12 sanity + 1 import contract). Net delta: +40 tests, all green.
+- `git status --short` shows only the three new files added; no Phase 1/2/3 file was modified.
+
+Open design notes for Phase 5 / 6:
+
+- Phase 5 (TF-IDF retrieval) should call `is_a_in_scope` to drop A rows before fitting the vectorizer, and call `assign_matchable_group` on both stores so candidate retrieval can be partitioned by group.
+- Phase 6 (hard rules) must call `groups_compatible(group_a, group_b)` as the first hard rule. Treat `None` group on either side as "do not match" (the function already returns False), so unclassifiable products are routed away from candidates.
+- Cheese-vs-Dairy is the only documented adjacency. If Phase 9 reveals recall loss on, e.g., kitchen_home<->household, widen `_DAIRY_CHEESE` (or generalize) at that point — not in Phase 4.
+- `_norm_cat` is private to `taxonomy` but re-imported by `scope`; if a third caller needs it, promote it from underscore-prefixed to a public helper.
+
+Next suggested action: Phase 5 — TF-IDF candidate retrieval. Add `betterbasket_matcher/retrieval.py` that builds a sparse matrix from `retrieval_text` for B (post-`assign_matchable_group`), uses TF-IDF with word `(1, 2)` and char-wb `(3, 5)` n-grams (`scipy.sparse.hstack`), and exposes `top_k(query_product, k)` returning candidate B indices and similarity scores. Drive it with the existing mini fixtures.
+
+Blockers: none.
+
+## Session - 2026-05-03 04:45 PDT
+
+Completed:
+
+- Phase 5: implemented TF-IDF candidate retrieval in `betterbasket_matcher/retrieval.py`.
+- Wrote `tests/test_retrieval.py` first (TDD, 20 tests); confirmed `ModuleNotFoundError: No module named 'betterbasket_matcher.retrieval'` before implementation.
+- Implementation is narrow: no hard rules, scoring, pipeline, output validation, or LLM logic was added. Phase 1 fixtures and all Phase 0-4 modules were not modified.
+
+Changed files:
+
+- `betterbasket_matcher/retrieval.py` (new)
+- `tests/test_retrieval.py` (new)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Behavior summary:
+
+- Public API: `build_retrieval_text(product) -> str`, `Candidate(item_id_b, score, rank)` (frozen dataclass), `TfidfRetriever.fit(products_b)` / `.query(product_a, k=50) -> list[Candidate]`.
+- Architecture: **single global B-side index + compatible-group post-filter** (preflight-approved option). Per-group indexes deferred to Phase 9 calibration.
+- Vectorizers: `TfidfVectorizer(analyzer="word", ngram_range=(1,2), lowercase=False, norm="l2", sublinear_tf=True)` + `TfidfVectorizer(analyzer="char_wb", ngram_range=(3,5), lowercase=False, norm="l2", sublinear_tf=True)`. `lowercase=False` because Phase 3 `retrieval_text` is already lowercased.
+- Combination: `scipy.sparse.hstack([Xw, Xc]).tocsr()` once at fit; same transform applied to query at query time. Each L2-normalized sub-vector → concatenated row L2 = sqrt(2). Ranking is unaffected; absolute thresholds will be calibrated in Phase 9 against actual scores.
+- Score: dot product `q @ X.T` (cosine-like with sqrt(2) scale).
+- Group filter: `taxonomy.groups_compatible(a_group, b_group)` is applied per row before scoring. Conservative (exact match + symmetric `dairy<->cheese` only) carries through to retrieval.
+- Edge cases (locked by tests):
+  - `fit([])` raises `ValueError`.
+  - `fit` with all-blank `retrieval_text` raises `ValueError`.
+  - `fit` drops blank-text rows from the corpus so they cannot be returned as candidates.
+  - `query` before `fit` raises `RuntimeError`.
+  - `query` returns `[]` when A's group is None.
+  - `query` returns `[]` when no B has a compatible group.
+  - `query` returns `[]` when A's `retrieval_text` is blank/whitespace.
+  - `query` clamps `k` to the compatible corpus size (no `argpartition` overflow).
+- Determinism: tie-break is `(-score, item_id_b ascending)`. `query` is idempotent across calls.
+- Ranks are 1-based and dense within the returned list.
+
+Verification:
+
+- Baseline before changes: `python3 -m pytest` -> 176 passed (Phase 4 baseline).
+- After tests added, before implementation: `python3 -m pytest tests/test_retrieval.py` -> collection error (`ModuleNotFoundError: No module named 'betterbasket_matcher.retrieval'`). Expected red.
+- After implementation: `python3 -m pytest tests/test_retrieval.py -v` -> 20 passed; `python3 -m pytest` -> 196 passed (20 retrieval + 40 taxonomy/scope + 86 normalize + 37 IO + 12 sanity + 1 import contract). Net delta: +20 tests, all green.
+- PDF regression locked: A 2197626 finds B 92544 in top-5; A 1929544 finds B 105624 in top-5; all three tomato variants (105624 / 103620 / 1086860) appear in candidates with k=50, so Phase 7 size hard rule will be the layer that prunes wrong sizes.
+
+Open design notes for Phase 6:
+
+- Phase 6 (hard rules) consumes `list[Candidate]` from Phase 5 and rejects pairs that violate group / brand / size / pack / organic / form / storage / flavor / alcohol compatibility. Treat `None` attributes as "unknown / no mismatch fired" per the Phase 3-fix design note. The retrieval `score` field carries forward to scoring as the lexical-similarity component; do not re-tokenize from raw fields.
+- Group filter is already applied in retrieval, but Phase 6 should re-assert `groups_compatible` defensively so callers that bypass retrieval (e.g., LLM arbiter feeding hand-chosen candidates) still respect the rule.
+- The `is_a_in_scope` filter is **not** invoked inside `query`. The Phase 8 pipeline must drop out-of-scope A rows before calling `retriever.query`. Document this on the `pipeline.py` docstring.
+- Score-scale note: scores are not in [0, 1]; expect roughly [0, sqrt(2)] in practice. Phase 9 calibration will set thresholds against this scale, or normalize at that point if convenient.
+- Per-group indexes: `_PRIVATE_LABEL_A`-style global term frequencies dilute IDF on tiny groups (bakery, prepared_foods). If Phase 9 calibration shows recall loss on those groups, switch from a single matrix to a `dict[group, (vectorizer, matrix, ids)]` and refit per group. Not worth doing speculatively in Phase 5.
+
+Next suggested action: Phase 6 — hard rules and deterministic scoring. Add `betterbasket_matcher/rules.py` with a `passes_hard_rules(a, b) -> tuple[bool, str]` predicate over (group, brand/PL, size, pack, organic, form, storage, flavor, alcohol) and `betterbasket_matcher/scoring.py` with the documented weighted scorer. Drive both with the mini fixtures.
+
+Blockers: none.
+
+## Session - 2026-05-03 05:30 PDT
+
+Completed:
+
+- Phase 6: implemented hard compatibility rules and deterministic scoring.
+- Wrote `tests/test_rules.py` (27 tests) and `tests/test_scoring.py` (21 tests) first (TDD); confirmed both failed with `ModuleNotFoundError` before implementation.
+- Implemented `betterbasket_matcher/rules.py` (`RuleResult`, `evaluate_hard_rules`) and `betterbasket_matcher/scoring.py` (`ScoreBreakdown`, `SelectionResult`, `score_pair`, `select_best`).
+- No pipeline orchestration, output writing, LLM arbitration, or earlier-phase modules were modified. Phase 1 fixtures were not touched.
+
+Changed files:
+
+- `betterbasket_matcher/rules.py` (new)
+- `betterbasket_matcher/scoring.py` (new)
+- `tests/test_rules.py` (new)
+- `tests/test_scoring.py` (new)
+- `docs/HANDOFF.md` (updated — this entry)
+
+Behavior summary:
+
+- `RuleResult(passed: bool, reason: str)` is `frozen=True`; `reason="ok"` on pass; stable failure reasons: `alcohol_mismatch`, `group_mismatch`, `national_vs_private_label`, `brand_mismatch`, `storage_mismatch`, `form_mismatch`, `pet_type_mismatch`, `flavor_mismatch`, `size_mismatch`, `pack_mismatch`.
+- `evaluate_hard_rules` ordering (first failing rule wins): alcohol → group → national_vs_pl → brand → storage → form → pet_type → flavor → size → pack. Storage/form/pet/flavor are checked before size because differing forms (powder vs liquid, sliced vs shredded) make total-size comparison meaningless. Alcohol runs before group so the reason is the more specific one.
+- `_to_base_size(size)` is a Phase-6-local helper that converts `SizeInfo` to `(family, base_value)`. Weight family → base ounces (`oz`×1, `lb`×16, `g`×0.035274, `kg`×35.274); volume family → base fluid ounces (`fl oz`×1, `ml`×0.033814, `l`×33.814, `gal`×128); count family → `ct`/`pk`/`count`×1. The function returns `None` if `unit` is unrecognized or no usable quantity is present (`total_size` preferred, falls back to `unit_size` only when `pack_count==1`). `normalize.py` is unchanged.
+- Size rule reject threshold: 8% relative diff on converted base values, only when families match. 16 oz ↔ 1 lb passes (same family, equal). 8 oz weight vs 8 fl oz volume skips (different families).
+- Pack rule uses observable `pack_count` only (no "explicit" flag): both >1 differ AND base diff >1% → reject; one >1 vs one =1 AND base diff >8% → reject; otherwise no rule.
+- Brand: confidently known nationals = `brand_norm != "" and not brand_inferred and not is_private_label`. `national_vs_private_label` requires exactly one PL side and a confidently known national on the other. `brand_mismatch` requires both confidently known and names differ.
+- Alcohol: `_is_alcoholic` returns True if matchable group is `wine_beer_spirits` OR `core_name` matches a conservative regex (`wine|beer|ale|lager|spirits|vodka|whiskey|whisky|rum|gin|tequila|liqueur|champagne|sake` plus `hard cider`). Mismatch fires before group check.
+- Pet type: only fires when both products are in the `pets` group AND `core_name`/`category_2` token detection finds different species (cat/kitten vs dog/puppy).
+- None semantics: storage_type/form/flavor `None` on either side never rejects. `is_organic` is bool only and is intentionally NOT a hard rule (scoring-only); confirmed by `test_organic_true_vs_false_does_not_hard_reject`.
+- `score_pair` weights are exactly `0.35 / 0.15 / 0.15 / 0.20 / 0.10 / 0.05` (core_name/token_overlap/brand/size_pack/group/attributes); the dataclass `total` equals the weighted sum within 1e-9.
+- `core_name` component normalizes the retrieval score by `min(max(retrieval_score / 2.0, 0.0), 1.0)`. Phase 5 hstacks two L2-normalized blocks without renormalizing the row, so an identical-text dot product reaches ~2.0 (not sqrt(2)). Boundary tests lock 2.0→1.0, 1.0→0.5, 0.0→0.0, overshoot→1.0, negative→0.0.
+- Brand scoring: 1.0 for two confidently known equal nationals; 0.85 for both PL (cross-store); 0.6 if exactly one side is empty/inferred; 0.5 if both empty; 0.0 if both confidently known and differ.
+- Size_pack scoring uses `_to_base_size` (never raw `total_size`): 1.0 if same family and ≤1% diff and equal pack_count; 0.7 if ≤5% and equal pack_count; 0.4 if either side returns `None` from the converter; 0.0 otherwise.
+- Group scoring: 1.0 equal; 0.7 dairy↔cheese; 0.0 otherwise.
+- Attribute scoring: equal-weighted average over storage_type/form/flavor (Optional → 1.0/0.5/0.0 with 0.5 for unknown) plus is_organic (bool → 1.0 if equal, 0.0 if true-vs-false; never 0.5 because there is no None for bools — true-vs-false is penalized, not treated as unknown).
+- `select_best` accepts `Iterable[tuple[NormalizedProduct, float]]` of `(b_product, retrieval_score)`. Reasons: `selected`, `no_candidates`, `all_rejected`, `below_min_score`, `below_min_margin`. Rejected candidates returned as `tuple[tuple[item_id_b, rule_reason], ...]` for audit. `breakdown` and `runner_up_item_id_b` are populated even on threshold/margin failure.
+- Tie-break order (descending preference): total → exact size match → equal pack_count → attribute agreement count → B metadata richness → ascending `int(item_id_b)`.
+
+Verification:
+
+- Baseline before changes: `python3 -m pytest -q` → 196 passed.
+- After tests added, before implementation: `python3 -m pytest tests/test_rules.py tests/test_scoring.py -q` → 2 collection errors (`ModuleNotFoundError: No module named 'betterbasket_matcher.rules'` and `'betterbasket_matcher.scoring'`). Expected red.
+- After implementation: `python3 -m pytest tests/test_rules.py tests/test_scoring.py -v` → 48 passed; `python3 -m pytest -q` → 244 passed (48 rules+scoring + 20 retrieval + 40 taxonomy/scope + 86 normalize + 37 IO + 12 sanity + 1 import contract). Net delta: +48 tests, all green.
+- `git status --short` shows only the four new files added; `git diff --stat -- betterbasket_matcher/io.py betterbasket_matcher/normalize.py betterbasket_matcher/taxonomy.py betterbasket_matcher/scope.py betterbasket_matcher/retrieval.py tests/fixtures` is empty (no earlier-phase modules or fixtures touched).
+- PDF regressions verified inside the test suite: A 2197626 vs B 92544 → `passed=True`; A 1929544 vs B 105624 → `passed=True`; A 1929544 vs B 103620 (15 oz) and B 1086860 (29 oz) → `size_mismatch`; `select_best` for A 1929544 with all three tomato candidates returns `selected_item_id_b="105624"` and lists the other two with reason `size_mismatch`.
+
+Open design notes for Phase 7 (pipeline + output):
+
+- Phase 7 should orchestrate: (1) `read_products` for A and B; (2) `normalize_product` per row; (3) `is_a_in_scope` filter on A (note: `query` does NOT call this — pipeline must); (4) build B index `dict[item_id, NormalizedProduct]`; (5) fit `TfidfRetriever` on normalized B; (6) for each in-scope A: `retriever.query(a, k=50)`, build pairs `[(b_index[c.item_id_b], c.score) for c in cands]`, call `select_best`; (7) write `matches.csv` and `matches_audit.csv`.
+- Three fixture rows have `category_1` strings the Phase 4 taxonomy doesn't yet map to a B `grocery` group (`Soups`, `Nut Butters & Spreads`, `Baking`). The Phase 6 hard-rule tests for those storage/size cases were therefore written with synthetic NormalizedProduct objects that share a mapped group; the rules themselves are exercised correctly. Phase 9 calibration may want to widen `_B_GROCERY_C1` to include those c1 strings to recover real-world recall, but Phase 6 made no taxonomy changes.
+- `min_score` and `min_margin` are not yet calibrated. Pick provisional values for the first end-to-end pipeline run (e.g., `min_score=0.55`, `min_margin=0.05`); Phase 9 will tune against the full dataset.
+- The retrieval-score scale `[0, 2]` (because Phase 5 hstacks two L2-normalized blocks without renormalizing the row) is documented in `score_pair` and `TestCoreNameNormalization`. If Phase 9 ever switches retrieval to a renormalized output, change the single divisor in `_score_core_name`.
+- `_to_base_size` lives in `rules.py` and is reused by `scoring.py`; a future module that needs unit conversion (e.g., a calibration helper) can import it from `rules`. Do not duplicate the table.
+- Hard rules order matters: alcohol must stay above group, and storage/form/pet/flavor must stay above size to keep the right reason fired for the powder-vs-liquid (82.5 oz vs 64 oz) and similar cases.
+- Output validation is intentionally NOT in Phase 6. Phase 7 (or a Phase 8 dedicated to it) owns the `matches.csv` shape, header check, A-set membership, dedup-by-item_id_A, and ≥4,000-row floor.
+
+Blockers: none.
+
+Next suggested action: Phase 7 — pipeline orchestration and output. Create `betterbasket_matcher/pipeline.py` (and `output.py` if desired) plus `scripts/run_pipeline.py`. Wire IO → normalize → scope filter → retrieval (Phase 5) → rules+scoring (Phase 6) → write `matches.csv` and `matches_audit.csv`. Drive an end-to-end test against the mini fixtures asserting the PDF regressions and a ≥-N-rows floor on the mini fixtures. Keep all hard rules and the LLM-arbiter ban from Phase 6 unchanged.
+
+## Session - 2026-05-03 12:43 PDT
+
+Phase 6 fix pass — addressed the three MAJOR findings from the hostile review (no Phase 7/pipeline/output/LLM scope creep, no fixture changes, no earlier-phase module changes).
+
+Completed:
+
+- M1 alcohol false positives — `_is_alcoholic` now applies a `_NON_ALCOHOL_PHRASE_RE` negative override before the keyword fallback. Phrases blocked: `ginger ale`, `(ginger|root|birch) beer`, `wine vinegar`, `cooking (wine|sherry)`, `rum (cake|extract|raisin)`, `beer (cheese|bread|battered)`, `non[-]?alcoholic`, `alcohol[-]?free`. The `wine_beer_spirits` group remains a strong positive signal (no negative override applied to the group path; department classification is trusted there). The original keyword regex (`wine|beer|ale|lager|spirits|vodka|whiskey|whisky|rum|gin|tequila|liqueur|champagne|sake` + `hard cider`) is unchanged.
+- M2 pack_mismatch coverage and dead-branch removal — removed the unreachable `((pa>1) ^ (pb>1)) and diff > 0.08` branch (any drift >8% already triggers `size_mismatch` at rule 9, so the second branch was dead). The remaining rule fires only when both sides are multipack, pack counts differ, and converted base size drifts >1%. Added explicit positive (fires) and negative (doesn't fire) coverage including the multipack-repackage case (1×32oz vs 4×8oz, equal totals → no rule fires).
+- M3 single-survivor margin behavior — `select_best` now returns `margin=None` when there is only one rule-surviving candidate and skips the `min_margin` gate in that case. Previously a single survivor compared against `runner_total=0.0`, which made `min_margin` falsely trigger `below_min_margin` whenever `top.total < min_margin`. The two-survivor path is unchanged: margin is computed as `top.total - runner_up.total` and `min_margin` still gates.
+
+Changed files:
+
+- `betterbasket_matcher/rules.py` (modified)
+- `betterbasket_matcher/scoring.py` (modified)
+- `tests/test_rules.py` (extended — `TestAlcoholFalsePositives`, `TestPackMismatch`)
+- `tests/test_scoring.py` (extended — `TestSingleSurvivorMargin`, plus margin assertions in `test_below_min_margin`)
+- `docs/HANDOFF.md` (this entry)
+
+Behavior summary (deltas only):
+
+- `_is_alcoholic(p, group)`: returns True if `group == "wine_beer_spirits"`; otherwise returns False if `_NON_ALCOHOL_PHRASE_RE` matches `core_name`, else returns True if the alcohol keyword regex (or `hard cider`) matches, else False. The negative-override-before-keyword order is the locked invariant.
+- pack rule (rule 10): exactly one branch — both `pa > 1` and `pb > 1` and `pa != pb` and converted base diff > 1% → reject `pack_mismatch`. All other shapes fall through to `_PASS`. `size_mismatch` (rule 9) is the sole guard for total-size drift across pack-count shapes.
+- `select_best` margin: `None` when `len(survivors) == 1`; populated when `len(survivors) >= 2`. `below_min_margin` reason now only reachable from the multi-survivor path. `below_min_score` and `selected` reasons both report `margin=None` for single-survivor cases (visible in audit output).
+
+Verification:
+
+- Baseline before changes: `python3 -m pytest tests/test_rules.py tests/test_scoring.py` → 48 passed.
+- Red phase (tests added before implementation): `python3 -m pytest tests/test_rules.py tests/test_scoring.py` → 8 failed, 60 passed (5 alcohol asymmetric tests + 3 single-survivor margin tests). M2 pack tests passed under current code (they lock in already-correct positive/negative coverage; the dead-branch removal needed no failing test).
+- Green phase: `python3 -m pytest tests/test_rules.py tests/test_scoring.py -v` → 68 passed (48 baseline + 20 new: 13 `TestAlcoholFalsePositives` + 4 `TestPackMismatch` + 3 `TestSingleSurvivorMargin`).
+- Full suite: `python3 -m pytest -q` → 264 passed (was 244; net delta +20). No regressions in retrieval, taxonomy, scope, normalize, IO, or sanity tests.
+- `git diff --stat -- tests/fixtures betterbasket_matcher/io.py betterbasket_matcher/normalize.py betterbasket_matcher/taxonomy.py betterbasket_matcher/scope.py betterbasket_matcher/retrieval.py` → empty. No fixture or earlier-phase module touched.
+- PDF regressions still hold: `evaluate_hard_rules` passes A 2197626 vs B 92544 and A 1929544 vs B 105624; rejects A 1929544 vs B 103620/1086860 with `size_mismatch`; `select_best` picks B 105624 for the tomato case.
+
+Open notes for Phase 7:
+
+- The single-survivor margin contract (`margin=None`, no `min_margin` check) is the right semantic for the pipeline's audit CSV: write `margin` as empty cell when None, not `0.0`. The downstream output module should not assume `margin` is always numeric.
+- No Phase 7/pipeline/output/LLM logic was added in this fix pass. The Phase 6 layer remains pure functions.
+- The non-alcohol phrase list is conservative; if future analysis surfaces additional false positives (e.g. `mocktail`, `tequila lime [snack/seasoning]`, `champagne vinaigrette`), extend `_NON_ALCOHOL_PHRASE_RE` rather than weakening the keyword regex.
+
+Blockers: none.
+
+Next suggested action: Phase 7 — pipeline orchestration and output, unchanged from the prior session's recommendation.
+

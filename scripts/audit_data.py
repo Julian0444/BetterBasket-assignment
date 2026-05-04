@@ -208,7 +208,7 @@ def parse_number(value: str) -> float | None:
 
 def normalize_unit(unit: str) -> str:
     unit_norm = normalize_text(unit)
-    if unit_norm in {"fl oz", "floz", "fluid ounce", "fluid ounces"}:
+    if unit_norm in {"fl oz", "floz", "fluid ounce", "fluid ounces"}: 
         return "fl_oz"
     if unit_norm in {"oz", "ounce", "ounces"}:
         return "oz"
