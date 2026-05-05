@@ -56,6 +56,32 @@ def _parse_args(argv=None) -> argparse.Namespace:
         "--limit", type=int, default=None,
         help="Process only the first N valid A rows (post-quarantine).",
     )
+    # Phase 10C: optional GPT-5 nano arbiter. Disabled by default; the
+    # deterministic baseline ships unchanged unless --use-llm-arbiter is
+    # passed. No credential loading happens when the flag is absent.
+    p.add_argument(
+        "--use-llm-arbiter", action="store_true",
+        help="Enable optional GPT-5 nano gray-zone rescue arbiter.",
+    )
+    p.add_argument(
+        "--llm-creds", default=None,
+        help="Path to OpenAI credentials YAML (default: --llm-creds, "
+             "BB_OPENAI_CREDS env, /tmp/openai_artifacts/openai_creds.yaml, "
+             "~/Downloads/openai_creds.yaml).",
+    )
+    p.add_argument(
+        "--llm-cache", default=".cache/llm_arbiter.jsonl",
+        help="JSON-lines cache path for arbiter opinions.",
+    )
+    p.add_argument(
+        "--llm-max-calls", type=int, default=1000,
+        help="Max API calls per run (cache hits do not consume budget).",
+    )
+    p.add_argument(
+        "--llm-min-confidence", type=float, default=0.60,
+        help="Minimum LLM confidence required to flip a below_threshold "
+             "row to accepted.",
+    )
     return p.parse_args(argv)
 
 
@@ -75,6 +101,20 @@ def main(argv=None) -> int:
         flush=True,
     )
 
+    arbiter = None
+    if args.use_llm_arbiter:
+        # Lazy import so the deterministic path never imports openai/yaml.
+        from betterbasket_matcher.llm_arbiter import LLMArbiter
+        arbiter = LLMArbiter.from_cli(args)
+        print(
+            "[BetterBasket pipeline] LLM arbiter enabled "
+            f"(deployment={arbiter._cfg.deployment_name}, "
+            f"max_calls={arbiter._cfg.max_calls}, "
+            f"min_confidence={arbiter._cfg.min_confidence}, "
+            f"cache={arbiter._cfg.cache_path}).",
+            flush=True,
+        )
+
     cfg = PipelineConfig(
         a_csv=args.a_csv,
         b_csv=args.b_csv,
@@ -84,6 +124,7 @@ def main(argv=None) -> int:
         min_margin=args.min_margin,
         top_k=args.top_k,
         limit=args.limit,
+        arbiter=arbiter,
     )
     result = run_pipeline(cfg)
 
@@ -95,6 +136,12 @@ def main(argv=None) -> int:
         f"matches_out={args.matches_out} audit_out={args.audit_out}",
         flush=True,
     )
+    if args.use_llm_arbiter:
+        print(
+            f"llm_arbiter: calls={result.llm_calls} "
+            f"rescues={result.llm_rescues} cache_hits={result.llm_cache_hits}",
+            flush=True,
+        )
 
     a_ids, b_ids = _id_sets(args.a_csv, args.b_csv)
     enforced_min = 0 if args.allow_under_min_rows else args.min_rows

@@ -23,6 +23,7 @@
 # .agents/ is a duplicate of .claude/skills/ and intentionally ignored.
 .agents/
 .claude/settings.local.json
+.claude/worktrees/
 
 # --- IDE local state --------------------------------------------------------
 .idea/

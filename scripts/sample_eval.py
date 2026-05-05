@@ -75,6 +75,31 @@ THRESH_SCORES = (0.78, 0.80, 0.82, 0.84)
 THRESH_MARGINS = (0.05, 0.08, 0.10)
 PIPELINE_MIN_ROWS = 4000
 
+# ---------------------------------------------------------------------------
+# Phase 10B sampling configuration
+# ---------------------------------------------------------------------------
+
+# (label, score_lo, score_hi_exclusive, quota)
+PHASE10B_SCORE_BUCKETS: Tuple[Tuple[str, float, float, int], ...] = (
+    ("score_0.55_0.60", 0.55, 0.60, 12),
+    ("score_0.60_0.65", 0.60, 0.65, 12),
+    ("score_0.65_0.70", 0.65, 0.70, 12),
+    ("score_0.70_0.75_threshold_zone", 0.70, 0.75, 18),
+    ("score_0.75_0.80", 0.75, 0.80, 12),
+    ("score_ge_0.80", 0.80, 1.01, 8),
+)
+# (group, quota); restricted to score < 0.70
+PHASE10B_WEAK_GROUPS: Tuple[Tuple[str, int], ...] = (
+    ("household", 3),
+    ("frozen", 2),
+    ("pantry", 2),
+    ("kitchen_home", 2),
+    ("seafood", 1),
+)
+PHASE10B_PL_QUOTA = 6
+PHASE10B_THRESH_SCORES = (0.65, 0.70, 0.75, 0.80)
+PHASE10B_THRESH_MARGIN = 0.05
+
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -99,6 +124,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
         "--diagnostics-out", default="eval/phase9_diagnostics.md"
     )
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--mode",
+        choices=("phase9", "phase10b"),
+        default="phase9",
+        help=(
+            "phase9 (default): legacy 50/50/30+2 buckets and Phase 9 "
+            "diagnostics including A 1929544 in-process top-50 trace. "
+            "phase10b: score-bucket + weak-group + PL strata for Phase 10B "
+            "calibration; lighter calibration diagnostics doc."
+        ),
+    )
     return p.parse_args(argv)
 
 
@@ -413,16 +449,87 @@ unchanged.
 # group_breakdown.md
 # ---------------------------------------------------------------------------
 
-def _maybe_load_labels(path: Path) -> Optional[Dict[Tuple[str, str], str]]:
+def _load_existing_annotations(
+    path: Path,
+) -> Dict[Tuple[str, str], Dict[str, str]]:
+    """Read existing label+notes from a previously written template.
+
+    Returns a mapping keyed by (item_id_A, item_id_B). Each value is a dict
+    with `label` (lowercased, stripped) and `notes` (raw, stripped of
+    trailing whitespace). Rows with empty label AND empty notes are
+    skipped so re-runs do not propagate noise. Missing file -> empty dict.
+    """
+    annotations: Dict[Tuple[str, str], Dict[str, str]] = {}
     if not path.exists():
-        return None
-    labels: Dict[Tuple[str, str], str] = {}
+        return annotations
     with path.open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         for r in reader:
+            a_id = (r.get("item_id_A") or "").strip()
+            b_id = (r.get("item_id_B") or "").strip()
+            if not a_id:
+                continue
             lbl = (r.get("label") or "").strip().lower()
-            if lbl:
-                labels[(r["item_id_A"], r["item_id_B"])] = lbl
+            notes = (r.get("notes") or "").rstrip()
+            if not lbl and not notes:
+                continue
+            annotations[(a_id, b_id)] = {"label": lbl, "notes": notes}
+    return annotations
+
+
+def _merge_existing_annotations(
+    template_rows: List[Dict[str, str]],
+    annotations: Dict[Tuple[str, str], Dict[str, str]],
+) -> int:
+    """Merge prior label/notes into freshly built template rows in place.
+
+    Match key is (item_id_A, item_id_B). Returns the number of template
+    rows that received a non-empty label OR notes from `annotations`.
+    Annotations whose key is no longer present in the regenerated sample
+    are silently dropped (the row was deduped out or the audit changed);
+    this is the documented expectation for stratified resampling.
+    """
+    if not annotations:
+        return 0
+    merged = 0
+    for r in template_rows:
+        key = (r.get("item_id_A", ""), r.get("item_id_B", ""))
+        ann = annotations.get(key)
+        if ann is None:
+            continue
+        if ann.get("label"):
+            r["label"] = ann["label"]
+        if ann.get("notes"):
+            r["notes"] = ann["notes"]
+        if ann.get("label") or ann.get("notes"):
+            merged += 1
+    return merged
+
+
+def _labels_from_rows(
+    rows: List[Dict[str, str]],
+) -> Dict[Tuple[str, str], str]:
+    """Extract a (item_id_A, item_id_B) -> label map from template rows.
+
+    Only rows with a non-empty `label` are included; this is the same
+    contract Phase 9/10B writers expect from `_maybe_load_labels`.
+    """
+    out: Dict[Tuple[str, str], str] = {}
+    for r in rows:
+        lbl = (r.get("label") or "").strip().lower()
+        if lbl:
+            out[(r.get("item_id_A", ""), r.get("item_id_B", ""))] = lbl
+    return out
+
+
+def _maybe_load_labels(path: Path) -> Optional[Dict[Tuple[str, str], str]]:
+    """Back-compat shim: returns label-only map or None if file/labels absent."""
+    annotations = _load_existing_annotations(path)
+    labels = {
+        key: ann["label"]
+        for key, ann in annotations.items()
+        if ann.get("label")
+    }
     return labels or None
 
 
@@ -465,16 +572,18 @@ def _write_group_breakdown(
     lines.append("")
     if existing_labels:
         lines.append(
-            f"Computed from {len(existing_labels)} hand labels in "
-            "`eval/manual_eval_template.csv`. Re-run `sample_eval.py` after "
-            "editing labels to refresh this table."
+            f"Computed from {len(existing_labels)} labels in "
+            "`eval/manual_eval_template.csv` (provisional unless these were "
+            "produced or confirmed by a human reviewer). Re-run "
+            "`sample_eval.py` after editing labels to refresh this table; "
+            "the sampler now preserves prior labels and notes across reruns."
         )
     else:
         lines.append(
             "Labels not yet filled — `correct` / `wrong` / `partial` / "
             "`unsure` columns and `est_precision` are TBD until "
-            "`eval/manual_eval_template.csv` is hand-labeled. Re-run "
-            "`sample_eval.py` after labeling to populate them."
+            "`eval/manual_eval_template.csv` is labeled (AI-assisted or "
+            "human). Re-run `sample_eval.py` after labeling to populate them."
         )
     lines.append("")
     lines.append(
@@ -966,6 +1075,516 @@ def _write_diagnostics(
 
 
 # ---------------------------------------------------------------------------
+# Phase 10B sampling
+# ---------------------------------------------------------------------------
+
+def _stratified_round_robin_shuffled(
+    rows: List[Dict[str, str]],
+    group_of: Callable[[Dict[str, str]], Optional[str]],
+    quota: int,
+    rng: random.Random,
+) -> List[Dict[str, str]]:
+    """Round-robin like _stratified_round_robin, but the *iteration order
+    over groups* is randomized per call so quotas smaller than the number
+    of groups don't always favor the alphabetically-first groups.
+    """
+    if quota <= 0 or not rows:
+        return []
+    by_group: Dict[Optional[str], List[Dict[str, str]]] = defaultdict(list)
+    for r in rows:
+        by_group[group_of(r)].append(r)
+    for k in by_group:
+        rng.shuffle(by_group[k])
+    keys = list(by_group.keys())
+    rng.shuffle(keys)
+    picked: List[Dict[str, str]] = []
+    while len(picked) < quota:
+        progressed = False
+        for k in keys:
+            if not by_group[k]:
+                continue
+            picked.append(by_group[k].pop())
+            progressed = True
+            if len(picked) >= quota:
+                break
+        if not progressed:
+            break
+    return picked
+
+
+def _build_phase10b_samples(
+    audit: List[Dict[str, str]],
+    a_norm: Dict[str, NormalizedProduct],
+    rng: random.Random,
+) -> List[Tuple[str, Dict[str, str]]]:
+    """Return [(sample_type, audit_row), ...] for Phase 10B strata.
+
+    Strata: 6 score buckets (round-robin by matchable_group), 5 weak-group
+    quotas restricted to score < 0.70, and a private-label cross-store
+    bucket. Dedup is performed by the caller via _dedup_preserve_pdf.
+    """
+    accepted = [r for r in audit if r["decision"] == "accepted"]
+    out: List[Tuple[str, Dict[str, str]]] = []
+
+    # Score buckets, group-stratified within each bucket.
+    for label, lo, hi, quota in PHASE10B_SCORE_BUCKETS:
+        in_bucket = []
+        for r in accepted:
+            s = _safe_float(r["score"])
+            if s is None:
+                continue
+            if not (lo <= s < hi):
+                continue
+            in_bucket.append(r)
+        picked = _stratified_round_robin_shuffled(
+            in_bucket,
+            lambda r: _group_for_a(a_norm.get(r["item_id_A"])),
+            quota,
+            rng,
+        )
+        for r in picked:
+            out.append((label, r))
+
+    # Weak-group oversample, restricted to score < 0.70.
+    for grp, quota in PHASE10B_WEAK_GROUPS:
+        eligible = []
+        for r in accepted:
+            s = _safe_float(r["score"])
+            if s is None or s >= 0.70:
+                continue
+            g = _group_for_a(a_norm.get(r["item_id_A"]))
+            if g == grp:
+                eligible.append(r)
+        rng.shuffle(eligible)
+        for r in eligible[:quota]:
+            out.append((f"weak_{grp}", r))
+
+    # Private-label cross-store, score in [0.55, 0.80), group-stratified.
+    pl_eligible = []
+    for r in accepted:
+        s = _safe_float(r["score"])
+        if s is None or not (0.55 <= s < 0.80):
+            continue
+        a = a_norm.get(r["item_id_A"])
+        if a is not None and a.is_private_label:
+            pl_eligible.append(r)
+    pl_picks = _stratified_round_robin_shuffled(
+        pl_eligible,
+        lambda r: _group_for_a(a_norm.get(r["item_id_A"])),
+        PHASE10B_PL_QUOTA,
+        rng,
+    )
+    for r in pl_picks:
+        out.append(("private_label_cross_store", r))
+
+    return out
+
+
+def _phase10b_threshold_grid(
+    audit: List[Dict[str, str]],
+) -> List[Dict[str, object]]:
+    """Recompute exact threshold counts for the Phase 10B candidate cells."""
+    rows: List[Tuple[str, str, float, Optional[float]]] = []
+    for r in audit:
+        if r["decision"] not in ("accepted", "below_threshold"):
+            continue
+        s = _safe_float(r["score"])
+        if s is None:
+            continue
+        m = _safe_float(r["top1_top2_margin"])
+        rows.append((r["item_id_A"], r["item_id_B"] or "", s, m))
+
+    out: List[Dict[str, object]] = []
+    for ms in PHASE10B_THRESH_SCORES:
+        mm = PHASE10B_THRESH_MARGIN
+        n = 0
+        pdf1 = pdf2 = False
+        for a_id, b_id, s, m in rows:
+            if s < ms:
+                continue
+            if m is not None and m < mm:
+                continue
+            n += 1
+            if a_id == "2197626" and b_id == "92544":
+                pdf1 = True
+            if a_id == "1929544" and b_id == "105624":
+                pdf2 = True
+        out.append({
+            "min_score": ms,
+            "min_margin": mm,
+            "accepted_count": n,
+            "pdf1_admit": pdf1,
+            "pdf2_admit": pdf2,
+            "clears_4000_floor": n >= PIPELINE_MIN_ROWS,
+        })
+    return out
+
+
+def _phase10b_score_bucket(score: Optional[float]) -> Optional[str]:
+    if score is None:
+        return None
+    for label, lo, hi, _q in PHASE10B_SCORE_BUCKETS:
+        if lo <= score < hi:
+            return label
+    return None
+
+
+def _write_group_breakdown_phase10b(
+    path: Path,
+    audit: List[Dict[str, str]],
+    sample_rows: List[Dict[str, str]],
+    a_norm: Dict[str, NormalizedProduct],
+    existing_labels: Optional[Dict[Tuple[str, str], str]],
+) -> None:
+    """Phase 10B per-group precision table.
+
+    Counts every sample row except `pdf_regression` (PDFs are not part of
+    the precision denominator; they are output-contract gates).
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    accepted_by_group: Counter = Counter()
+    for r in audit:
+        if r["decision"] != "accepted":
+            continue
+        g = _group_for_a(a_norm.get(r["item_id_A"])) or "(none)"
+        accepted_by_group[g] += 1
+
+    sampled_by_group: Counter = Counter()
+    for r in sample_rows:
+        if r["sample_type"] == "pdf_regression":
+            continue
+        sampled_by_group[r["matchable_group"] or "(none)"] += 1
+
+    label_buckets: Dict[str, Counter] = defaultdict(Counter)
+    if existing_labels:
+        sample_index = {
+            (r["item_id_A"], r["item_id_B"]): r for r in sample_rows
+        }
+        for key, lbl in existing_labels.items():
+            r = sample_index.get(key)
+            if r is None:
+                continue
+            if r["sample_type"] == "pdf_regression":
+                continue
+            g = r["matchable_group"] or "(none)"
+            label_buckets[g][lbl] += 1
+
+    lines: List[str] = []
+    lines.append("# Phase 10B Per-Group Precision")
+    lines.append("")
+    if existing_labels:
+        lines.append(
+            f"Computed from {len(existing_labels)} **AI-assisted preliminary "
+            "labels (Codex)** in `eval/manual_eval_phase10b.csv`. These "
+            "labels are not human-reviewed; precision numbers below are "
+            "**provisional** until a human pass edits the CSV. `partial` is "
+            "treated as a precision miss; `unsure` is excluded from the "
+            "denominator. Re-run `sample_eval.py --mode phase10b` after "
+            "edits to refresh — the sampler now preserves prior labels and "
+            "notes across reruns."
+        )
+    else:
+        lines.append(
+            "Labels not yet filled — `est_precision` columns will populate "
+            "after `eval/manual_eval_phase10b.csv` is labeled (AI-assisted "
+            "or human) and the sampler is rerun in `--mode phase10b`."
+        )
+    lines.append("")
+    lines.append(
+        "| matchable_group | accepted_count | sampled | correct | wrong | "
+        "partial | unsure | est_precision |"
+    )
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|")
+
+    all_groups = sorted(
+        set(accepted_by_group) | set(sampled_by_group) | set(label_buckets),
+        key=lambda x: (-accepted_by_group.get(x, 0), x),
+    )
+    total_acc = sum(accepted_by_group.values())
+    total_samp = sum(sampled_by_group.values())
+    total_correct = total_wrong = total_partial = total_unsure = 0
+
+    for g in all_groups:
+        acc = accepted_by_group.get(g, 0)
+        samp = sampled_by_group.get(g, 0)
+        if existing_labels is None:
+            row = f"| {g} | {acc} | {samp} | TBD | TBD | TBD | TBD | TBD |"
+        else:
+            c = label_buckets[g].get("correct", 0)
+            w = label_buckets[g].get("wrong", 0)
+            pa = label_buckets[g].get("partial", 0)
+            u = label_buckets[g].get("unsure", 0)
+            denom = c + w + pa
+            est = f"{c / denom:.3f}" if denom > 0 else "TBD"
+            total_correct += c
+            total_wrong += w
+            total_partial += pa
+            total_unsure += u
+            row = (
+                f"| {g} | {acc} | {samp} | {c} | {w} | {pa} | {u} | {est} |"
+            )
+        lines.append(row)
+
+    if existing_labels is None:
+        lines.append(
+            f"| **TOTAL** | **{total_acc}** | **{total_samp}** | TBD | TBD | "
+            "TBD | TBD | TBD |"
+        )
+    else:
+        denom_t = total_correct + total_wrong + total_partial
+        est_t = (
+            f"{total_correct / denom_t:.3f}" if denom_t > 0 else "TBD"
+        )
+        lines.append(
+            f"| **TOTAL** | **{total_acc}** | **{total_samp}** | "
+            f"**{total_correct}** | **{total_wrong}** | **{total_partial}** | "
+            f"**{total_unsure}** | **{est_t}** |"
+        )
+
+    lines.append("")
+    lines.append(
+        "Notes: `est_precision = correct / (correct + wrong + partial)`. "
+        "Groups with sampled < 5 are not load-bearing for the Phase 10B "
+        "calibration target (>=80% per shipped group with >=5 labels)."
+    )
+    lines.append("")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_phase10b_calibration_md(
+    path: Path,
+    audit: List[Dict[str, str]],
+    a_norm: Dict[str, NormalizedProduct],
+    sample_rows: List[Dict[str, str]],
+    existing_labels: Optional[Dict[Tuple[str, str], str]],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines: List[str] = []
+    lines.append("# Phase 10B Calibration")
+    lines.append("")
+    lines.append(
+        "Computed from current `matches_audit.csv` and "
+        "`eval/manual_eval_phase10b.csv`. No pipeline rerun by this "
+        "script. Threshold grid is exact, not interpolated. The "
+        "per-bucket precision rows below derive from **AI-assisted "
+        "preliminary labels (Codex)** and are **provisional** until a "
+        "human pass edits the CSV; the threshold grid and PDF rows do "
+        "not depend on labels and are exact."
+    )
+
+    _section(lines, "1. Decision distribution (current audit)")
+    _table(lines, ["decision", "count", "share"],
+           _diag_decision_distribution(audit))
+
+    _section(lines, "2. Accepted count by matchable_group")
+    _table(lines, ["matchable_group", "accepted_count"],
+           _diag_by_group(audit, "accepted", a_norm))
+
+    _section(lines, "3. Threshold grid (exact, current audit)")
+    lines.append(
+        "For each candidate cell, count = audit rows with "
+        "`decision in {accepted, below_threshold}` whose stored `score` "
+        "and `top1_top2_margin` clear the cell. Margin is held at 0.05; "
+        "blank-margin (single-survivor) rows are admitted."
+    )
+    lines.append("")
+    grid = _phase10b_threshold_grid(audit)
+    grid_rows: List[List[str]] = []
+    for cell in grid:
+        grid_rows.append([
+            f"{cell['min_score']:.2f}",
+            f"{cell['min_margin']:.2f}",
+            str(cell["accepted_count"]),
+            "Y" if cell["pdf1_admit"] else "N",
+            "Y" if cell["pdf2_admit"] else "N",
+            "Y" if cell["clears_4000_floor"] else "N",
+        ])
+    _table(lines,
+           ["min_score", "min_margin", "accepted_count",
+            "pdf1_admit (2197626->92544)",
+            "pdf2_admit (1929544->105624)",
+            "clears_4000_floor"],
+           grid_rows)
+
+    _section(lines, "4. Accepted score-bucket distribution (current audit)")
+    bucket_counter: Counter = Counter()
+    for r in audit:
+        if r["decision"] != "accepted":
+            continue
+        s = _safe_float(r["score"])
+        bucket_counter[_phase10b_score_bucket(s) or "(none)"] += 1
+    bucket_rows: List[List[str]] = []
+    bucket_order = [b[0] for b in PHASE10B_SCORE_BUCKETS] + ["(none)"]
+    for label in bucket_order:
+        if bucket_counter.get(label, 0) > 0:
+            bucket_rows.append([label, str(bucket_counter[label])])
+    _table(lines, ["score_bucket", "accepted_count"], bucket_rows)
+
+    _section(lines, "5. Per-bucket precision (from labeled sample)")
+    if not existing_labels:
+        lines.append(
+            "Labels not yet filled. Label "
+            "`eval/manual_eval_phase10b.csv` (AI-assisted or human) and "
+            "rerun the sampler — prior labels and notes are preserved."
+        )
+    else:
+        # Map labels onto sample rows; bucket the sampled accepted rows.
+        sample_index = {
+            (r["item_id_A"], r["item_id_B"]): r for r in sample_rows
+        }
+        per_bucket: Dict[str, Counter] = defaultdict(Counter)
+        for key, lbl in existing_labels.items():
+            r = sample_index.get(key)
+            if r is None:
+                continue
+            if r["sample_type"] == "pdf_regression":
+                continue
+            s = _safe_float(r.get("score") or "")
+            b = _phase10b_score_bucket(s) or "(none)"
+            per_bucket[b][lbl] += 1
+        bp_rows: List[List[str]] = []
+        for label in bucket_order:
+            cnt = per_bucket.get(label, Counter())
+            c = cnt.get("correct", 0)
+            w = cnt.get("wrong", 0)
+            pa = cnt.get("partial", 0)
+            u = cnt.get("unsure", 0)
+            denom = c + w + pa
+            if c + w + pa + u == 0:
+                continue
+            est = f"{c / denom:.3f}" if denom > 0 else "TBD"
+            bp_rows.append([label, str(c), str(w), str(pa), str(u), est])
+        _table(lines,
+               ["score_bucket", "correct", "wrong", "partial", "unsure",
+                "est_precision"],
+               bp_rows)
+        # Cumulative precision by min_score floor (assuming partial=wrong,
+        # unsure excluded). For each candidate min_score, take all labeled
+        # rows whose audit score >= min_score and compute precision.
+        lines.append("")
+        lines.append(
+            "**Cumulative precision at candidate global thresholds** "
+            "(labeled subset; `partial` counted as wrong, `unsure` excluded):"
+        )
+        lines.append("")
+        cum_rows: List[List[str]] = []
+        for ms in PHASE10B_THRESH_SCORES:
+            c = w = pa = u = 0
+            for key, lbl in existing_labels.items():
+                r = sample_index.get(key)
+                if r is None:
+                    continue
+                if r["sample_type"] == "pdf_regression":
+                    continue
+                s = _safe_float(r.get("score") or "")
+                if s is None or s < ms:
+                    continue
+                if lbl == "correct":
+                    c += 1
+                elif lbl == "wrong":
+                    w += 1
+                elif lbl == "partial":
+                    pa += 1
+                elif lbl == "unsure":
+                    u += 1
+            denom = c + w + pa
+            est = f"{c / denom:.3f}" if denom > 0 else "TBD"
+            cum_rows.append([
+                f"{ms:.2f}", str(c), str(w), str(pa), str(u), est,
+            ])
+        _table(lines,
+               ["min_score", "correct", "wrong", "partial", "unsure",
+                "est_precision_at_or_above"],
+               cum_rows)
+
+    _section(lines, "6. PDF regressions (current audit)")
+    by_a = {r["item_id_A"]: r for r in audit}
+    pdf_rows: List[List[str]] = []
+    for a_id, _b in PDF_REQUIRED:
+        r = by_a.get(a_id)
+        if r is None:
+            pdf_rows.append([a_id, "(missing)", "", "", "", "", ""])
+        else:
+            pdf_rows.append(_format_audit_row(r))
+    _table(lines,
+           ["item_id_A", "item_id_B (chosen)", "decision", "reason",
+            "score", "retrieval_score", "top1_top2_margin"],
+           pdf_rows)
+
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_phase10b_eval_md(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = """# Phase 10B Manual Evaluation Guide
+
+## Purpose
+
+`eval/manual_eval_phase10b.csv` is a stratified sample of the
+recall-heavy matcher run (16,218-row matches.csv at `--min-score 0.55
+--min-margin 0.05`) used to calibrate the shipped global `min_score`.
+The CSV ships pre-populated with **AI-assisted preliminary labels
+(Codex)**; these are NOT a substitute for human review. Treat the
+per-bucket precision in `eval/phase10b_calibration.md` and the
+per-group precision in `eval/group_breakdown.md` as **provisional**
+until a human re-reads the rows. The output contract (4,000+ rows,
+both PDF pairs, no duplicate `item_id_A`) is validated independently
+of these labels.
+
+## Strata
+
+- `score_0.55_0.60` ... `score_ge_0.80`: 6 score buckets across the
+  current accepted distribution; each is round-robin sampled across
+  `matchable_group` so high-volume groups don't saturate the bucket.
+- `weak_<group>`: oversample of suspect groups (household, frozen,
+  pantry, kitchen_home, seafood) restricted to score < 0.70.
+- `private_label_cross_store`: A.is_private_label=True, score in
+  [0.55, 0.80).
+- `pdf_regression`: the two assignment-required pairs. Not counted in
+  the precision denominator; they are output-contract gates.
+
+## Label values (used by the AI-assisted pass; same vocabulary applies for human review)
+
+- `correct` — same product as a customer would consider it (same
+  brand-equivalence including PL bridge, same form, same flavor,
+  equivalent usable size).
+- `wrong` — clearly different products (different brand family without
+  PL bridge, materially different size/flavor/form, different functional
+  category).
+- `partial` — same product family, ambiguous attribute mismatch
+  (organic vs non-organic, light vs regular, scent variants). Counted
+  as wrong for the precision target but reported separately.
+- `unsure` — cannot decide from the names. Excluded from the precision
+  denominator and reported.
+
+## Workflow (human review pass)
+
+1. Open `eval/manual_eval_phase10b.csv`.
+2. For each row, read `A_name` / `B_name` and confirm or correct the
+   AI-assisted `label`. Edit `notes` to capture rationale, especially
+   on rows you flip.
+3. Save the file in place.
+4. Re-run `python3 scripts/sample_eval.py --mode phase10b ...` (same
+   args). The sampler now loads existing labels and notes BEFORE
+   regenerating the template, so your edits survive the rerun. It
+   refreshes `eval/group_breakdown.md` and
+   `eval/phase10b_calibration.md` with the updated per-group and
+   per-bucket precision tables. Until a human pass is recorded,
+   precision numbers in those tables remain provisional.
+
+## Do NOT modify
+
+`item_id_A`, `item_id_B`, `A_name`, `B_name`, `score`, `margin`,
+`source`, `reason`, `decision`, `sample_type`, `matchable_group`.
+
+## Estimated time
+
+20-40 minutes for ~90 rows.
+"""
+    path.write_text(body, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -973,73 +1592,132 @@ def main(argv=None) -> int:
     args = _parse_args(argv)
     rng = random.Random(args.seed)
 
-    print("[Phase 9 sample_eval] loading audit...", flush=True)
+    tag = "Phase 10B sample_eval" if args.mode == "phase10b" else "Phase 9 sample_eval"
+
+    print(f"[{tag}] loading audit...", flush=True)
     audit = _load_audit(args.audit_csv)
     print(f"  audit rows: {len(audit)}", flush=True)
 
-    print("[Phase 9 sample_eval] normalizing A side...", flush=True)
+    print(f"[{tag}] normalizing A side...", flush=True)
     a_raw, a_norm, _a_list = _load_source(args.a_csv, "A")
     print(f"  A normalized: {len(a_norm)}", flush=True)
 
-    print("[Phase 9 sample_eval] normalizing B side...", flush=True)
+    print(f"[{tag}] normalizing B side...", flush=True)
     b_raw, b_norm_by_id, b_normalized_list = _load_source(args.b_csv, "B")
     print(f"  B normalized: {len(b_norm_by_id)}", flush=True)
 
-    print("[Phase 9 sample_eval] building sample buckets...", flush=True)
-    bucket_a = _bucket_random_accepted(audit, a_norm, rng)
-    bucket_b = _bucket_bottom_q1_accepted(audit, a_norm, rng)
-    bucket_c = _bucket_near_miss(audit)
-    bucket_d = _bucket_pdf(audit)
+    print(f"[{tag}] building sample buckets...", flush=True)
 
-    template_rows: List[Dict[str, str]] = []
-    for r in bucket_a:
-        template_rows.append(_to_template_row(r, "random_accepted",
-                                              a_raw, b_raw, a_norm))
-    for r in bucket_b:
-        template_rows.append(_to_template_row(r, "bottom_q1_accepted",
-                                              a_raw, b_raw, a_norm))
-    for r in bucket_c:
-        template_rows.append(_to_template_row(r, "near_miss_below_threshold",
-                                              a_raw, b_raw, a_norm))
-    pdf_rows = [
-        _to_template_row(r, "pdf_regression", a_raw, b_raw, a_norm)
-        for r in bucket_d
-    ]
-    template_rows = _dedup_preserve_pdf(template_rows, pdf_rows)
-    print(
-        f"  bucketA={len(bucket_a)} bucketB={len(bucket_b)} "
-        f"bucketC={len(bucket_c)} pdf={len(pdf_rows)} "
-        f"final_template_rows={len(template_rows)}",
-        flush=True,
-    )
+    if args.mode == "phase10b":
+        labeled_samples = _build_phase10b_samples(audit, a_norm, rng)
+        template_rows: List[Dict[str, str]] = [
+            _to_template_row(r, label, a_raw, b_raw, a_norm)
+            for label, r in labeled_samples
+        ]
+        pdf_rows = [
+            _to_template_row(r, "pdf_regression", a_raw, b_raw, a_norm)
+            for r in _bucket_pdf(audit)
+        ]
+        template_rows = _dedup_preserve_pdf(template_rows, pdf_rows)
+        bucket_summary = Counter(label for label, _ in labeled_samples)
+        bucket_summary["pdf_regression"] = len(pdf_rows)
+        print(
+            "  strata: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(bucket_summary.items()))
+            + f"; final_template_rows={len(template_rows)}",
+            flush=True,
+        )
+    else:
+        bucket_a = _bucket_random_accepted(audit, a_norm, rng)
+        bucket_b = _bucket_bottom_q1_accepted(audit, a_norm, rng)
+        bucket_c = _bucket_near_miss(audit)
+        bucket_d = _bucket_pdf(audit)
+
+        template_rows = []
+        for r in bucket_a:
+            template_rows.append(_to_template_row(r, "random_accepted",
+                                                  a_raw, b_raw, a_norm))
+        for r in bucket_b:
+            template_rows.append(_to_template_row(r, "bottom_q1_accepted",
+                                                  a_raw, b_raw, a_norm))
+        for r in bucket_c:
+            template_rows.append(_to_template_row(r, "near_miss_below_threshold",
+                                                  a_raw, b_raw, a_norm))
+        pdf_rows = [
+            _to_template_row(r, "pdf_regression", a_raw, b_raw, a_norm)
+            for r in bucket_d
+        ]
+        template_rows = _dedup_preserve_pdf(template_rows, pdf_rows)
+        print(
+            f"  bucketA={len(bucket_a)} bucketB={len(bucket_b)} "
+            f"bucketC={len(bucket_c)} pdf={len(pdf_rows)} "
+            f"final_template_rows={len(template_rows)}",
+            flush=True,
+        )
 
     out_csv = Path(args.out_csv)
+    # Load any prior annotations BEFORE overwriting the template, so a
+    # rerun with the same audit + same seed preserves human/AI-assisted
+    # labels and notes across regenerations. Phase 10B previously read
+    # labels AFTER writing, which silently erased the file.
+    prior_annotations = _load_existing_annotations(out_csv)
+    merged = _merge_existing_annotations(template_rows, prior_annotations)
+    if prior_annotations:
+        print(
+            f"  preserved {merged}/{len(prior_annotations)} prior annotations "
+            f"from {out_csv}",
+            flush=True,
+        )
     _write_template(out_csv, template_rows)
     print(f"  wrote {out_csv}", flush=True)
 
-    manual_md = out_csv.parent / "manual_eval.md"
-    _write_manual_eval_md(manual_md)
+    if args.mode == "phase10b":
+        manual_md = out_csv.parent / "manual_eval_phase10b.md"
+        _write_phase10b_eval_md(manual_md)
+    else:
+        manual_md = out_csv.parent / "manual_eval.md"
+        _write_manual_eval_md(manual_md)
     print(f"  wrote {manual_md}", flush=True)
 
-    existing_labels = _maybe_load_labels(out_csv)
-    _write_group_breakdown(
-        Path(args.group_breakdown_out),
-        audit,
-        template_rows,
-        a_norm,
-        existing_labels,
-    )
+    existing_labels = _labels_from_rows(template_rows) or None
+
+    if args.mode == "phase10b":
+        _write_group_breakdown_phase10b(
+            Path(args.group_breakdown_out),
+            audit,
+            template_rows,
+            a_norm,
+            existing_labels,
+        )
+    else:
+        _write_group_breakdown(
+            Path(args.group_breakdown_out),
+            audit,
+            template_rows,
+            a_norm,
+            existing_labels,
+        )
     print(f"  wrote {args.group_breakdown_out}", flush=True)
 
-    print("[Phase 9 sample_eval] writing diagnostics (incl. targeted "
-          "A 1929544 top-50)...", flush=True)
-    _write_diagnostics(
-        Path(args.diagnostics_out),
-        audit,
-        a_norm,
-        b_norm_by_id,
-        b_normalized_list,
-    )
+    if args.mode == "phase10b":
+        print(f"[{tag}] writing calibration doc...", flush=True)
+        _write_phase10b_calibration_md(
+            Path(args.diagnostics_out),
+            audit,
+            a_norm,
+            template_rows,
+            existing_labels,
+        )
+    else:
+        print(f"[{tag}] writing diagnostics (incl. targeted "
+              "A 1929544 top-50)...", flush=True)
+        _write_diagnostics(
+            Path(args.diagnostics_out),
+            audit,
+            a_norm,
+            b_norm_by_id,
+            b_normalized_list,
+        )
     print(f"  wrote {args.diagnostics_out}", flush=True)
 
     return 0

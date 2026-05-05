@@ -373,3 +373,95 @@ class TestLimit:
         _, audit_rows = _read_audit(out_audit)
         assert len(audit_rows) == 3
         assert result.valid_a_count == 3
+
+
+# ---------------------------------------------------------------------------
+# Phase 10C: optional arbiter integration (fake client only, no network)
+# ---------------------------------------------------------------------------
+
+class TestPhase10CArbiterIntegration:
+    """The arbiter is opt-in. When wired but inactive (no fixture row
+    falls into the rescue score window), the deterministic baseline
+    must be byte-identical. When the rescue window is widened so a
+    fixture row qualifies, the FakeClient's yes/0.85 response must
+    flip the row to accepted with source=llm_rescued. No network."""
+
+    @staticmethod
+    def _fake_client():
+        import json
+
+        class _Msg: pass
+        class _Choice: pass
+        class _Completion:
+            def __init__(self, content):
+                m = _Msg(); m.content = content
+                c = _Choice(); c.message = m
+                self.choices = [c]
+                self.id = "chatcmpl-fake"
+
+        class _Completions:
+            def create(self, **kwargs):
+                return _Completion(json.dumps({
+                    "same_product_for_customer": True,
+                    "confidence": 0.85,
+                    "reason": "fake yes",
+                    "blocking_issue": None,
+                }))
+
+        class _Chat:
+            def __init__(self): self.completions = _Completions()
+
+        class _Client:
+            def __init__(self): self.chat = _Chat()
+
+        return _Client()
+
+    def test_arbiter_rescues_eligible_below_threshold_row(
+        self, tmp_path, monkeypatch,
+    ):
+        """Widen the rescue window for this test so a fixture row falls
+        in band, then rescue it via FakeClient. Production constants in
+        pipeline.py are unchanged after the test exits."""
+        from betterbasket_matcher import pipeline as pipeline_mod
+        from betterbasket_matcher.llm_arbiter import (
+            LLMArbiter, LLMArbiterConfig,
+        )
+        monkeypatch.setattr(pipeline_mod, "LLM_RESCUE_SCORE_LOW", 0.50)
+        monkeypatch.setattr(pipeline_mod, "LLM_RESCUE_SCORE_HIGH", 0.99)
+
+        cfg = LLMArbiterConfig(
+            creds_path=tmp_path / "creds.yaml",
+            cache_path=tmp_path / "cache.jsonl",
+            max_calls=20, min_confidence=0.60,
+            deployment_name="fake-dep",
+            endpoint="https://example.invalid/v1/",
+            api_key="FAKE-TEST-KEY-DO-NOT-USE",
+        )
+        arbiter = LLMArbiter(cfg, client=self._fake_client())
+
+        l_m = tmp_path / "llm_m.csv"
+        l_a = tmp_path / "llm_a.csv"
+        result = run_pipeline(PipelineConfig(
+            a_csv=str(A_CSV), b_csv=str(B_CSV),
+            matches_out=str(l_m), audit_out=str(l_a),
+            min_score=0.95, min_margin=0.05, top_k=50,
+            arbiter=arbiter,
+        ))
+        _, audit_rows = _read_audit(l_a)
+        rescued = [r for r in audit_rows
+                   if r["source"] == "llm_rescued"
+                   and r["decision"] == "accepted"]
+        assert len(rescued) >= 1
+        for r in rescued:
+            assert r["item_id_B"] != ""
+            assert abs(float(r["llm_confidence"]) - 0.85) < 1e-9
+            assert r["reason"].startswith("llm_rescue_below_min_")
+
+        assert result.llm_rescues == len(rescued)
+        assert result.llm_calls >= len(rescued)
+
+        assert cfg.cache_path.exists()
+        body = cfg.cache_path.read_text(encoding="utf-8")
+        assert "FAKE-TEST-KEY-DO-NOT-USE" not in body
+        for marker in ("api_key", "sk-", "Authorization", "Bearer "):
+            assert marker not in body

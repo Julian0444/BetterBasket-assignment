@@ -1,227 +1,252 @@
-# Solución explicada fácil — para alguien que recién empieza
+# Solution explained simply — for someone just getting started
 
-> Versión "sin asumir nada" de [solution.md](solution.md). Si ya tenés background en ML, retrieval o NLP, andá directo a `solution.md`. Si no, empezá acá.
+> "Assume nothing" version of [solution.md](solution.md). If you already have an ML, retrieval, or NLP background, go straight to `solution.md`. If not, start here.
 >
-> Las fuentes de verdad técnicas son `docs/dataset_audit.md` y `docs/algorithm_recommendation.md`. Este documento cuenta lo mismo en lenguaje cotidiano.
+> The technical sources of truth are `docs/dataset_audit.md` and `docs/algorithm_recommendation.md`. This document tells the same story in everyday language.
 
 ---
 
-## 1. ¿Qué nos están pidiendo?
+## 1. What are we being asked to do?
 
-Imaginate que sos el dueño de un supermercado pequeño. Querés saber: **"¿mi precio del yogur Chobani es competitivo?"**. Para eso, necesitás comparar tu precio contra el del mismo yogur en Walmart, Wegmans, Costco, etc.
+Imagine you own a small grocery store. You want to know: **"is my Chobani yogurt price competitive?"**. To figure that out, you need to compare your price against the price of the same yogurt at Walmart, Wegmans, Costco, etc.
 
-El problema: **Walmart no te avisa qué producto es cuál**. Te dan una lista de 233.000 productos con nombres tipo `"Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup"`, y vos tenés tu propia lista de Wegmans con `"Chobani Greek Honey Blended Yogurt"`. **Vos tenés que figurar cuáles son el mismo producto.**
+The problem: **Walmart doesn't tell you which product is which**. They give you a list of 233,000 products with names like `"Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup"`, and you have your own Wegmans list with `"Chobani Greek Honey Blended Yogurt"`. **You have to figure out which ones are the same product.**
 
-Eso es lo que hace BetterBasket: **emparejar productos entre supermercados** para que sus clientes (otros supermercados) puedan comparar precios.
+That is what BetterBasket does: **match products across grocery stores** so its customers (other grocery stores) can compare prices.
 
-### El task concreto
+### The concrete task
 
 ```
-Te dan:
-  • Lista A: 233.199 productos de Walmart (con nombre, marca, descripción, etc.)
-  • Lista B: 55.516 productos de Wegmans (mismo formato)
+You are given:
+  • List A: 233,199 Walmart products (with name, brand, description, etc.)
+  • List B: 55,516 Wegmans products (same format)
 
-Tenés que devolver:
-  • Un archivo matches.csv que diga "el producto X de Walmart =
-    el producto Y de Wegmans"
-  • Mínimo 4.000 emparejamientos (matches)
-  • Cada emparejamiento debe ser real: un cliente debería decir
-    "sí, son esencialmente el mismo producto"
+You must return:
+  • A matches.csv file that says "Walmart product X =
+    Wegmans product Y"
+  • At least 4,000 matches
+  • Every match must be real: a customer should say
+    "yes, those are essentially the same product"
+```
+
+### What we deliver
+
+```
+matches.csv  ->  4,394 rows (header item_id_A,item_id_B)
+                 - clears the 4,000 floor
+                 - both PDF examples resolve correctly:
+                     A 2197626 -> B 92544       (Chobani 5.3 oz)
+                     A 1929544 -> B 105624      (Wegmans Organic Tomato Sauce 8 oz)
+                 - 0 duplicate item_id_A values
+                 - all IDs are numeric and exist in the original CSVs
+
+Generated with:
+  python3 scripts/run_pipeline.py \
+      --a-csv ... --b-csv ... \
+      --min-score 0.75 --min-margin 0.05 --top-k 50
+
+Test suite: 412 passing.
 ```
 
 ---
 
-## 2. ¿Por qué no es trivial? (Las 5 razones)
+## 2. Why is this not trivial? (The 5 reasons)
 
-### Razón 1: Los volúmenes son enormes
+### Reason 1: The volumes are enormous
 
-Si quisieras comparar **cada producto de A contra cada producto de B**, harías:
+If you wanted to compare **every product in A against every product in B**, you would do:
 
 ```
-233.199 × 55.516 = 12.946.275.684 comparaciones
+233,199 x 55,516 = 12,946,275,684 comparisons
 ```
 
-Eso son **casi 13 mil millones**. Imposible mandarlas todas a un LLM o a un cross-encoder. Hay que ser inteligente: solo comparar productos que tienen chance real de matchear.
+That is **almost 13 billion**. Impossible to send all of them to an LLM or to a cross-encoder. You have to be smart: only compare products that have a real chance of matching.
 
-### Razón 2: No tenemos el "DNI del producto" (UPC)
+### Reason 2: We do not have the "product DNI" (UPC)
 
-En el mundo real, cada producto tiene un código de 12 dígitos llamado **UPC** — el código de barras de la caja. Si dos productos tienen el mismo UPC, **son literalmente el mismo producto**, no hay duda.
+In the real world, every product has a 12-digit code called a **UPC** — the barcode on the box. If two products share the same UPC, **they are literally the same product**, no doubt about it.
 
-**El problema en este dataset**: Walmart no trae UPC en absoluto, y Wegmans solo trae un `ic_item_id` parecido a UPC en 681 / 55.516 filas (1.23%). Como Walmart no tiene contraparte, **el join por UPC no es viable**.
+**The problem in this dataset**: Walmart does not bring UPC at all, and Wegmans only has a UPC-like `ic_item_id` in 681 / 55,516 rows (1.23%). Since Walmart has no counterpart, **a UPC join is not viable**.
 
-### Razón 3: Los datos vienen sucios y con columnas señuelo
+### Reason 3: The data is dirty and ships with decoy columns
 
-Cuando abrimos los CSV, encontramos que muchas columnas que parecen útiles vienen **100% vacías**:
+When we open the CSVs, we find that many columns that look useful come **100% empty**:
 
-- `name_clean`, `category`, `department`, `subcategory`, `size_raw` — vacías en ambos archivos.
-- `is_private_label`, `item_type` (Walmart) y `is_organic` (Wegmans) — también vacías.
+- `name_clean`, `category`, `department`, `subcategory`, `size_raw` — empty in both files.
+- `is_private_label`, `item_type` (Walmart) and `is_organic` (Wegmans) — also empty.
 
-**Conclusión**: tenemos que **reconstruir** marca, categoría, tamaño, "es marca propia", "es orgánico", etc. desde los datos crudos (`name`, `brand_raw`, `item_info`, `sizing_comp`, `tags`).
+**Conclusion**: we have to **rebuild** brand, category, size, "is private label", "is organic", etc. from the raw data (`name`, `brand_raw`, `item_info`, `sizing_comp`, `tags`).
 
-### Razón 4: Hay 5 filas rotas en Walmart
+### Reason 4: There are 5 broken rows in Walmart
 
-Walmart trae **5 filas con `item_id` que no es un número** — vienen con las columnas corridas, e.g. un `item_id` que dice `" | Pack of 12"` o `"Acrylic Tortoise Thick Gripjaw Non Holdmetal Small Hair"`. Si dejamos que esas filas pasen, terminamos con basura tokenizada y, peor, con `item_id` no numéricos en el output final.
+Walmart ships **5 rows where `item_id` is not a number** — they come with shifted columns, e.g. an `item_id` that says `" | Pack of 12"` or `"Acrylic Tortoise Thick Gripjaw Non Holdmetal Small Hair"`. If we let those rows through, we end up with garbage tokens and, worse, with non-numeric `item_id` values in the final output.
 
-**Conclusión**: lo primero que hace el pipeline es validar `item_id` con la regex `^\d+$` y poner las 5 filas malas en cuarentena. **Antes de cualquier otra cosa.**
+**Conclusion**: the very first thing the pipeline does is validate `item_id` against the regex `^\d+$` and quarantine the 5 bad rows. **Before anything else.**
 
-### Razón 5: Los productos no siempre tienen un equivalente
+### Reason 5: Products do not always have an equivalent
 
-Walmart vende juguetes, ropa, herramientas. Wegmans solo vende comida y artículos de supermercado. Si en A tenés un producto "Mainstays Picture Frame 5x7", **no hay nada en B con qué comparar**. La auditoría identificó al menos **48.007 filas** de A en categorías sin contraparte en B (Toys, Clothing, Home Improvement, Sports & Outdoors, Party & Occasions, Office Supplies, Auto & Tires, Electronics, Arts Crafts & Sewing, Jewelry, Books, Cell Phones).
+Walmart sells toys, clothing, tools. Wegmans only sells food and grocery items. If A has a product like "Mainstays Picture Frame 5x7", **there is nothing in B to compare it against**. The audit identified at least **48,007 rows** of A in categories with no counterpart in B (Toys, Clothing, Home Improvement, Sports & Outdoors, Party & Occasions, Office Supplies, Auto & Tires, Electronics, Arts Crafts & Sewing, Jewelry, Books, Cell Phones).
 
-**Conclusión**: hay que filtrar **antes** de comparar. Es trabajo gratis y deja el matcher trabajando solo con A relevante.
+**Conclusion**: we must filter **before** comparing. It's free work and leaves the matcher operating only on relevant A items.
 
 ---
 
-## 3. La idea grande: pensá como un humano lo haría
+## 3. The big idea: think the way a human would
 
-Si vos, persona, tuvieras que hacer este task a mano, ¿cómo lo harías?
+If you, as a person, had to do this task by hand, how would you do it?
 
-1. **Tirarías a la basura las filas rotas** (las 5 con `item_id` no numérico).
-2. **Limpiarías los nombres**. "(12 pack) Great Value Tomato Sauce, 8 oz" → "Great Value Tomato Sauce 8 oz" (y guardás `pack=12` aparte).
-3. **Reconstruirías marca, categoría, tamaño** de los datos crudos porque las columnas pre-cleaned están vacías.
-4. **Descartarías lo que no aplica** (juguetes, ropa, electrónica): Wegmans no vende eso.
-5. **Mapearías categorías a una taxonomía intermedia** (`dairy`, `pantry`, `frozen`, ...) para poder comparar entre Walmart y Wegmans.
-6. **Para cada producto de A, buscarías candidatos plausibles en B** — no los 55.000, solo los 50 más prometedores.
-7. **Aplicarías reglas de sentido común**: "¿mismo tamaño?", "¿misma forma física?", "¿marca compatible?". Cualquier "no" elimina el candidato.
-8. **Le pondrías un puntaje a los sobrevivientes** y elegirías el mejor.
-9. **En casos dudosos, pedirías ayuda** a alguien que sepa.
+1. **Throw away the broken rows** (the 5 with non-numeric `item_id`).
+2. **Clean up the names**. "(12 pack) Great Value Tomato Sauce, 8 oz" -> "Great Value Tomato Sauce 8 oz" (and store `pack=12` separately).
+3. **Rebuild brand, category, size** from the raw data because the pre-cleaned columns are empty.
+4. **Discard what does not apply** (toys, clothing, electronics): Wegmans does not sell that.
+5. **Map categories to an intermediate taxonomy** (`dairy`, `pantry`, `frozen`, ...) so you can compare across Walmart and Wegmans.
+6. **For each A product, find plausible B candidates** — not all 55,000, just the 50 most promising ones.
+7. **Apply common-sense rules**: "same size?", "same physical form?", "compatible brand?". Any "no" eliminates the candidate.
+8. **Score the survivors** and pick the best one.
+9. **In doubtful cases, ask for help** from someone who knows.
 
-Eso es exactamente lo que hace nuestro pipeline. La diferencia es que en vez de hacerlo a mano (te llevaría meses), lo hacemos con código. Y para el paso 9 ("pedir ayuda") usamos un modelo de IA — **GPT-5 nano**, **opcional** y **solo en zona gris**.
+That is exactly what our pipeline does. The difference is that, instead of doing it by hand (it would take you months), we do it with code and it finishes well under a minute. Step 9 ("ask for help") is implemented with **GPT-5.4 nano** (`betterbasket_matcher/llm_arbiter.py`), but it is **off by default**: the `matches.csv` we ship was generated **without** any LLM calls. The arbiter is available behind `--use-llm-arbiter` if the reviewer wants to see gray-zone rescues.
 
 ---
 
-## 4. Los 3 tipos de match
+## 4. The 3 types of match
 
-### Tipo 1: Idéntico con UPC (el caso fácil)
+### Type 1: Identical with UPC (the easy case)
 
 ```
 A: "Coca-Cola 12 oz" UPC=049000028911
 B: "Coca-Cola 12 oz" UPC=049000028911
 
-→ Mismo UPC = mismo producto. CASO RESUELTO.
+-> Same UPC = same product. CASE CLOSED.
 ```
 
-**En este dataset: ❌ no aplica** (Walmart no tiene UPC). Pero conceptualmente es el caso más fácil.
+**In this dataset: does NOT apply** (Walmart has no UPC). But conceptually it is the easiest case.
 
-### Tipo 2: Idéntico sin UPC (mismo producto, distintos catálogos)
+### Type 2: Identical without UPC (same product, different catalogs)
 
 ```
 A (Walmart): "Chobani Whole Milk Greek Yogurt Honey Blended 5.3 oz Cup"
 B (Wegmans): "Chobani Greek Honey Blended Yogurt"  +  size: 5.3 oz
 
-→ Misma marca (Chobani), mismo concepto, mismo tamaño. Es match.
+-> Same brand (Chobani), same concept, same size. It's a match.
 ```
 
-Lo confirma: **marca exacta** + **nombre core** + **tamaño**.
+What confirms it: **exact brand** + **core name** + **size**.
 
-### Tipo 3: Equivalente conceptual (private label)
+### Type 3: Conceptual equivalent (private label)
 
-**Private label** = "marca propia del supermercado". Cada cadena tiene la suya:
+**Private label** = "the store's own brand". Each chain has its own:
 
 - Walmart: `Great Value`, `Marketside`, `Freshness Guaranteed`, `Equate`, `Mainstays`, `Bettergoods`, etc.
-- Wegmans: `Wegmans` (la marca propia se llama igual que la cadena) + tag `wegmans brand`.
+- Wegmans: `Wegmans` (the private brand has the same name as the chain) + tag `wegmans brand`.
 
 ```
 A (Walmart): "Great Value Organic Tomato Sauce, 8 oz"   (Walmart PL)
 B (Wegmans): "Wegmans Organic Tomato Sauce"  +  size 8 oz   (Wegmans PL)
 
-→ Marcas distintas, ambos PL, mismo concepto, mismo tamaño. Es match.
+-> Different brands, both PL, same concept, same size. It's a match.
 ```
 
-Este es el caso **más difícil** porque no hay un atributo "duro" igual. Pero **OJO con el tamaño**: Wegmans tiene también la misma salsa en 15 oz y 29 oz, y son productos distintos. La regla dura de tamaño es la que evita elegir mal.
+This is the **hardest** case because there is no "hard" attribute that lines up. But **watch the size**: Wegmans also has the same sauce in 15 oz and 29 oz, and those are different products. The hard size rule is what prevents picking the wrong one.
 
 ---
 
-## 5. Las herramientas técnicas explicadas en cristiano
+## 5. The technical tools, in plain terms
 
-### 5.1 TF-IDF — el ranker de palabras (nuestro motor principal)
+### 5.1 TF-IDF — the word ranker (our main engine)
 
-**¿Qué es?** Una técnica clásica que rankea documentos por las palabras que comparten con la query, ponderando por qué tan **raras** son esas palabras en el corpus. Si "tomato" aparece en muchos productos, pesa poco; si "wegmans" aparece poco, pesa mucho.
+**What is it?** A classic technique that ranks documents by the words they share with the query, weighted by how **rare** those words are in the corpus. If "tomato" appears in many products, it weighs little; if "wegmans" appears rarely, it weighs a lot.
 
-**Variante que usamos**: TF-IDF con dos vectorizers en paralelo:
+**The variant we use**: TF-IDF with two parallel vectorizers:
 
-- **Word (1, 2)-grams**: pesa palabras solas y pares de palabras consecutivas.
-- **Char-wb (3, 5)-grams**: pesa secuencias de caracteres dentro de cada palabra. Esto da robustez a typos y variaciones ortográficas (`organic` vs `organics`, `mountain dew` vs `mtn dew`).
+- **Word (1, 2)-grams**: weights single words and consecutive word pairs.
+- **Char-wb (3, 5)-grams**: weights character sequences inside each word. This adds robustness against typos and orthographic variants (`organic` vs `organics`, `mountain dew` vs `mtn dew`).
 
-Concatenamos los dos vectores y eso es el "espacio de búsqueda". Para cada producto de A, buscamos los 50 productos B con vectores más cercanos.
+We concatenate the two vectors and that becomes the "search space". For each A product we look up the 50 closest B products in vector space.
 
-**Por qué TF-IDF y no otro algoritmo**: el dry-run del repo (`scripts/retrieval_probe.py`) probó tanto TF-IDF word+char como BM25 sobre las 55.516 filas reales de Wegmans. TF-IDF rankeó ambos ejemplos del PDF en **#1**. BM25 con marca incluida hundió a `Great Value Organic Tomato Sauce 8 oz` al **rank 5** porque la palabra "Great" infló candidatos como `Colgate Great Regular Flavor` y `Great Lakes Provolone Cheese`. **TF-IDF gana**.
+**Why TF-IDF and not another algorithm**: the repo's dry-run (`scripts/retrieval_probe.py`) tested both TF-IDF word+char and BM25 on the real 55,516 Wegmans rows. TF-IDF ranked both PDF examples at **#1**. BM25 with brand included sank `Great Value Organic Tomato Sauce 8 oz` to **rank 5** because the word "Great" inflated candidates such as `Colgate Great Regular Flavor` and `Great Lakes Provolone Cheese`. **TF-IDF wins**.
 
-### 5.2 BM25 — opcional, sólo como diagnóstico
+### 5.2 BM25 — optional, only as a diagnostic
 
-**¿Qué es?** Un primo más sofisticado de TF-IDF. Excelente para muchos casos, pero en private label tiene trampas léxicas duras (las palabras "Great" y "Value" arruinan el ranking). Lo dejamos como segundo ranker de diagnóstico para detectar cuándo TF-IDF se está perdiendo algo, no como motor principal.
+**What is it?** A more sophisticated cousin of TF-IDF. Excellent for many cases, but with private label it falls into hard lexical traps (the words "Great" and "Value" wreck the ranking). We keep it as a secondary diagnostic ranker to detect when TF-IDF might be missing something, not as the primary engine.
 
-### 5.3 Embeddings — diferido para "después"
+### 5.3 Embeddings — discarded for this pipeline
 
-**¿Qué son?** Vectores densos producidos por un modelo de lenguaje. Productos parecidos quedan cerca en un mapa de muchas dimensiones; productos distintos quedan lejos.
+**What are they?** Dense vectors produced by a language model. Similar products end up close together in a high-dimensional map; different products end up far apart.
 
-**Por qué los dejamos para después**: son fuertes para paráfrasis ("Whole Milk" ≈ "Vit D Milk"), pero más débiles para distinguir tamaños, packs, sabores y variantes numéricas — que es **justo lo que más nos hiere** acá (Wegmans tomato sauce 8/15/29 oz). Como capa de recall extra son interesantes una vez que el deterministic core ya entrega 4.000 matches sólidos.
+**Why we do not use them in this pipeline**: they are strong for paraphrase ("Whole Milk" ~= "Vit D Milk"), but weaker at distinguishing sizes, packs, flavors, and numeric variants — which is **exactly what hurts us most** here (Wegmans tomato sauce 8/15/29 oz). The deterministic core with TF-IDF word+char already ranks both PDF examples at #1 and ships 4,394 matches above the 4,000 floor.
 
-### 5.4 GPT-5 nano (LLM) — el árbitro opcional
+### 5.4 GPT-5.4 nano (LLM) — the optional arbiter, off by default
 
-**¿Qué es?** El modelo de lenguaje más chico de la familia GPT-5 vía API. Lo usamos **solo** cuando el pipeline determinístico ya hizo su trabajo y nos quedamos con candidatos en zona gris (puntaje moderado, atributos no del todo claros). Le mandamos un prompt compacto con un JSON estructurado de respuesta:
+**What is it?** The smallest model in the GPT-5 family via API. It is **implemented** in `betterbasket_matcher/llm_arbiter.py` and wired to the pipeline via `--use-llm-arbiter`, but **off by default**. The shipped `matches.csv` was generated **without** any LLM calls.
+
+When activated, it only steps in to resolve cases where the deterministic score landed in a gray zone (`below_threshold` with score `[0.65, 0.75)`). We send it a compact prompt and demand strict JSON:
 
 ```json
 {
-  "best_match_id": "<item_id_B>" or null,
   "same_product_for_customer": true,
-  "confidence": 0.0..1.0,
+  "confidence": 0.0,
   "reason": "<short>",
   "blocking_issue": "<size|brand|category|...|null>"
 }
 ```
 
-**Reglas**: el LLM **no puede override** una hard rule. Si las reglas duras dicen que size es incompatible, el LLM no puede aceptar ese par. El LLM aporta criterio donde las reglas no llegan, no autoridad sobre las reglas.
+**Hard guardrails**:
+
+- The LLM **cannot override** a hard rule. Rows the hard rules rejected are never offered to the arbiter.
+- The LLM **cannot change** an already-`accepted` row. Rows the deterministic score already cleared above 0.75 are never offered.
+- The arbiter fail-closes: any exception, parse error, NaN, out-of-range value, or exhausted budget -> no rescue; the deterministic decision stands.
+- `api_key` never appears in logs, prompts, or the .jsonl cache.
 
 ---
 
-## 6. Las 11 etapas del pipeline (paso a paso)
+## 6. The 11 pipeline stages (step by step)
 
-### Etapa 1 — Ingest + validar
+### Stage 1 — Ingest + validate
 
-**Misión**: leer los CSV en streaming y tirar las filas rotas.
+**Mission**: read the CSVs in streaming and drop the broken rows.
 
-- `csv.DictReader` sobre A y B, sin pandas (footprint chico).
-- **Validar `item_id` con la regex `^\d+$`**. Las 5 filas de A con `item_id` no numérico se aíslan en `quarantine_a.csv` y **no entran al pipeline**.
-- Construir los sets numéricos `valid_ids_A` y `valid_ids_B`. El validador final del CSV de salida los usa para verificar que cada `item_id` exista de verdad.
+- `csv.DictReader` over A and B, no pandas (small footprint).
+- **Validate `item_id` against `^\d+$`**. The 5 A rows with non-numeric `item_id` are isolated in `quarantine_a.csv` and **do not enter the pipeline**.
+- Build the numeric sets `valid_ids_A` and `valid_ids_B`. The final output validator uses them to verify every `item_id` actually exists.
 
-### Etapa 2 — Parsear JSON y tags
+### Stage 2 — Parse JSON and tags
 
-**Misión**: convertir las columnas con JSON crudo en estructuras manejables.
+**Mission**: convert the columns with raw JSON into structured data.
 
-- `item_info` y `sizing_comp` (en A y en B): parser tolerante. Si parsea pero no es dict, devolver `{}`.
-- `tags` de B: parser tolerante (JSON list → array Postgres `{a,b,c}` → split por coma → fallback []).
-- `tags` de A: vacío en todas salvo las 5 malformadas, no se usa.
+- `item_info` and `sizing_comp` (in A and B): tolerant parser. If it parses but is not a dict, return `{}`.
+- B `tags`: tolerant parser (JSON list -> Postgres array `{a,b,c}` -> comma split -> fallback []).
+- A `tags`: empty in all rows except the 5 malformed ones, not used.
 
-### Etapa 3 — Normalizar
+### Stage 3 — Normalize
 
-**Misión**: convertir cada producto en un "registro estandarizado" con campos limpios y comparables.
+**Mission**: convert each product into a "standardized record" with clean, comparable fields.
 
-Cada item válido se proyecta a un objeto con campos:
+Each valid item is projected into an object with fields:
 
 `item_id`, `source`, `name_raw`, `name_norm`, `core_name`, `brand_norm`, `brand_inferred`, `is_private_label`, `category_0..2`, `matchable_group`, `size_value`, `size_unit`, `size_family`, `pack_count`, `unit_size`, `total_size`, `is_organic`, `storage_type`, `form`, `flavor_tokens`, `retrieval_text`.
 
-Reglas:
+Rules:
 
 - **Brand**:
-  - A: `brand_raw` cuando está poblado. Cuando está blank (45.87% de A; **63.89% en Food**), inferimos del prefijo del `name` contra una whitelist (PL Walmart + brands top de B). Marcamos `brand_inferred=True`.
-  - B: `brand_raw` directo (cobertura 90%).
-- **Private label**: detectado explícitamente — A por whitelist (`great value`, `marketside`, ...), B por `brand_raw == Wegmans` o tag `wegmans brand`.
-- **Categorías**: parseadas de `item_info.category_0..3` en ambos lados.
-- **Size**: A primero del `name`, fallback a `sizing_comp`; B primero de `sizing_comp.size_user_friendly` (95.51% cobertura), fallback a `name`.
-- **Pack count**: parseado **separado** del per-unit size.
-- **Organic / form / storage / flavor**: keyword extraction sobre `name`, complementado por B `tags`.
+  - A: `brand_raw` when populated. When blank (45.87% of A; **63.89% in Food**), we infer it from the prefix of `name` against a whitelist (Walmart PL + top B brands). We mark `brand_inferred=True`.
+  - B: `brand_raw` directly (90% coverage).
+- **Private label**: detected explicitly — A via whitelist (`great value`, `marketside`, ...), B via `brand_raw == Wegmans` or tag `wegmans brand`.
+- **Categories**: parsed from `item_info.category_0..3` on both sides.
+- **Size**: A first from `name`, fallback to `sizing_comp`; B first from `sizing_comp.size_user_friendly` (95.51% coverage), fallback to `name`.
+- **Pack count**: parsed **separately** from per-unit size.
+- **Organic / form / storage / flavor**: keyword extraction over `name`, complemented by B `tags`.
 
-**Ejemplo concreto**:
+**Concrete example**:
 
 ```
-INPUT (raw row de A):
+INPUT (raw row from A):
   name: "(12 pack) Great Value Organic Tomato Sauce, 8 oz"
-  brand_raw: ""  (vacío)
+  brand_raw: ""  (empty)
   item_info: '{"category_0":"Food","category_1":"Pantry",...}'
   sizing_comp: '{"size_user_friendly":null,...}'
 
-OUTPUT (registro normalizado):
+OUTPUT (normalized record):
   item_id: "1929544"
   brand_norm: "great value"
   brand_inferred: true
@@ -237,255 +262,271 @@ OUTPUT (registro normalizado):
   matchable_group: "pantry"
 ```
 
-### Etapa 4 — Filtrar lo irrelevante (scope filter)
+### Stage 4 — Filter out the irrelevant (scope filter)
 
-**Misión**: descartar productos de A que no tienen chance de tener match en B.
+**Mission**: discard A products that have no chance of having a match in B.
 
-- **Conservar** A en categorías comparables: Food, Personal Care, Household Essentials, Health and Medicine, Baby, Pets, Beauty, parte selectiva de Home (Kitchen & Dining sí, Decor/Frames/Furniture/Bedding no).
-- **Descartar** A en `Toys`, `Clothing`, `Home Improvement`, `Sports & Outdoors`, `Party & Occasions`, `Office Supplies`, `Auto & Tires`, `Electronics`, `Arts Crafts & Sewing`, `Jewelry`, `Books`, `Cell Phones`. Esto saca al menos **48.007 filas**.
+- **Keep** A in comparable categories: Food, Personal Care, Household Essentials, Health and Medicine, Baby, Pets, Beauty, selective parts of Home (Kitchen & Dining yes, Decor/Frames/Furniture/Bedding no).
+- **Drop** A in `Toys`, `Clothing`, `Home Improvement`, `Sports & Outdoors`, `Party & Occasions`, `Office Supplies`, `Auto & Tires`, `Electronics`, `Arts Crafts & Sewing`, `Jewelry`, `Books`, `Cell Phones`. This removes at least **48,007 rows**.
 
-### Etapa 5 — Taxonomía compartida (`matchable_group`)
+### Stage 5 — Shared taxonomy (`matchable_group`)
 
-**Misión**: como Walmart y Wegmans usan taxonomías distintas, mapeamos ambos a una **taxonomía intermedia común** con grupos como:
+**Mission**: since Walmart and Wegmans use different taxonomies, we map both to a **shared intermediate taxonomy** with groups such as:
 
 `pantry`, `snacks`, `candy`, `beverages`, `dairy`, `cheese`, `frozen`, `produce`, `meat`, `seafood`, `bakery`, `prepared_foods`, `baby`, `pets`, `household`, `personal_care`, `health`, `beauty`, `kitchen_home`, `wine_beer_spirits`.
 
-Esto es el "bridge" para comparar `category` entre las tiendas.
+This is the "bridge" that lets us compare `category` between the two stores.
 
-### Etapa 6 — Generar candidatos (TF-IDF word + char)
+### Stage 6 — Generate candidates (TF-IDF word + char)
 
-**Misión**: para cada uno de los ~185.000 productos de A que sobrevivieron al scope, encontrar los 50 productos de B más prometedores.
+**Mission**: for each of the ~185,000 A products that survived the scope filter, find the 50 most promising B products.
 
-- Construir un índice **TF-IDF word `(1, 2)` + char-wb `(3, 5)`** sobre B, idealmente uno por `matchable_group`.
-- El **texto de retrieval se construye distinto** según el tipo de marca:
-  - **Marca nacional**: incluye brand fuerte. `"chobani greek honey blended yogurt 5.3 oz dairy yogurt"`.
-  - **Marca propia**: **suprime** los tokens de marca de tienda (`great value`, `marketside`, `wegmans`, etc.) y se apoya en core name + size + group + organic. `"organic tomato sauce 8 oz pantry organic canned"`.
-- Para cada A item: top-k = 50 candidatos B.
-- `k = 100` cuando A tiene `brand_blank` o categoría sparse.
+- Build a **TF-IDF word `(1, 2)` + char-wb `(3, 5)`** index over B, ideally one per `matchable_group`.
+- The **retrieval text is built differently** depending on brand type:
+  - **National brand**: include strong brand. `"chobani greek honey blended yogurt 5.3 oz dairy yogurt"`.
+  - **Private label**: **suppress** store-brand tokens (`great value`, `marketside`, `wegmans`, etc.) and rely on core name + size + group + organic. `"organic tomato sauce 8 oz pantry organic canned"`.
+- For each A item: top-k = 50 B candidates.
+- `k = 100` when A has `brand_blank` or a sparse category.
 
-**Por qué la asimetría**: el dry-run del repo lo confirmó. Sin suppression, BM25 manda a `Great Lakes Provolone Cheese` al top-1 cuando buscamos `Great Value Provolone Deli Style Sliced Cheese 8 oz`. Con suppression, ese ruido baja dramáticamente. TF-IDF aguanta mejor sin suppression para los ejemplos del PDF, pero es buena práctica suprimir igual para no confiar en suerte.
+**Why the asymmetry**: the repo dry-run confirmed it. Without suppression, BM25 sends `Great Lakes Provolone Cheese` to top-1 when querying `Great Value Provolone Deli Style Sliced Cheese 8 oz`. With suppression, that noise drops dramatically. TF-IDF holds up better than BM25 without suppression for the PDF examples, but we still suppress to avoid relying on luck.
 
-### Etapa 7 — Reglas duras (sentido común)
+### Stage 7 — Hard rules (common sense)
 
-**Misión**: descartar candidatos que claramente no son match, sin importar lo parecidos que sean los nombres.
+**Mission**: discard candidates that clearly are not matches, no matter how similar the names look.
 
-Para cada par (A, B), aplicamos un checklist en cascada. Cualquier "REJECT" elimina el par antes del scoring.
+For each (A, B) pair we apply a checklist in cascade. Any "REJECT" eliminates the pair before scoring.
 
-1. **IDs válidos** — ambos numéricos y existentes.
-2. **`matchable_group` compatible** — mismo group o adyacente whitelist (e.g. B `Cheese` ↔ A `Dairy & Eggs`).
-3. **Marca / private label compatibility**:
-   - National ↔ National: misma marca exacta.
-   - Private-label ↔ Private-label: cross-store permitido.
-   - National ↔ Private-label: rechazar (excepción explícita opcional para fresh/loose).
-4. **Tamaño compatible** — ratio en [0.95, 1.05] = OK; [0.5, 2.0] = a decidir; fuera = reject.
-5. **Pack compatible** — single bottle vs 24-pack = reject.
-6. **Organic mismatch** — si A es organic y existe candidato B organic compatible, rechazar el non-organic.
+1. **Valid IDs** — both numeric and existing.
+2. **Compatible `matchable_group`** — same group or a whitelisted adjacency (e.g. B `Cheese` <-> A `Dairy & Eggs`).
+3. **Brand / private label compatibility**:
+   - National <-> National: same exact brand.
+   - Private-label <-> Private-label: cross-store allowed.
+   - National <-> Private-label: reject (optional explicit exception for fresh/loose).
+4. **Compatible size** — ratio in [0.95, 1.05] = OK; [0.5, 2.0] = decide later; outside = reject.
+5. **Compatible pack** — single bottle vs 24-pack = reject.
+6. **Organic mismatch** — if A is organic and a compatible organic B candidate exists, reject the non-organic.
 7. **Form** — powder vs liquid, whole bean vs ground, sliced vs shredded, cat vs dog, adult vs baby.
 8. **Storage** — frozen vs shelf-stable = reject; refrigerated vs fresh = unknown.
 9. **Alcohol/non-alcohol** — reject mismatch.
-10. **Flavor** — vanilla vs chocolate cuando ambos están detectados = reject.
+10. **Flavor** — vanilla vs chocolate when both are detected = reject.
 
-### Etapa 8 — Score determinístico
+### Stage 8 — Deterministic score
 
-**Misión**: poner un puntaje numérico a los pares sobrevivientes.
+**Mission**: assign a numeric score to the surviving pairs.
 
-Pesos sugeridos:
+Suggested weights:
 
 ```
-score = 0.35 × similitud_de_nombre_TF-IDF
-      + 0.15 × overlap_de_tokens (post strip de brand y size)
-      + 0.15 × compatibilidad_de_marca
-      + 0.20 × compatibilidad_de_size_y_pack
-      + 0.10 × compatibilidad_de_categoría/grupo
-      + 0.05 × atributos (organic, form, flavor, storage, dietary)
+score = 0.35 x TF-IDF_name_similarity
+      + 0.15 x token_overlap (post strip of brand and size)
+      + 0.15 x brand_compatibility
+      + 0.20 x size_and_pack_compatibility
+      + 0.10 x category/group_compatibility
+      + 0.05 x attributes (organic, form, flavor, storage, dietary)
 ```
 
-- `compatibilidad_de_marca`: 1.0 same national; 0.85 PL↔PL cross-store; 0.4 cuando un lado tiene blank/inferred; 0.0 cuando known nationals incompatibles.
-- `compatibilidad_de_size_y_pack`: 1.0 mismo size canónico y mismo pack; partial credit en rangos cercanos; 0.0 fuera (y normalmente ya cortó la regla dura).
-- `compatibilidad_de_categoría`: 1.0 mismo group; menor para adyacentes permitidos.
-- Penalties asimétricas: que un lado **no tenga el campo** no equivale a mismatch.
+- `brand_compatibility`: 1.0 same national; 0.85 PL<->PL cross-store; 0.4 when one side has blank/inferred; 0.0 when known nationals are incompatible.
+- `size_and_pack_compatibility`: 1.0 same canonical size and same pack; partial credit in nearby ranges; 0.0 outside (and usually the hard rule already cut it).
+- `category_compatibility`: 1.0 same group; lower for allowed adjacencies.
+- Asymmetric penalties: one side **missing the field** is not equivalent to a mismatch.
 
-**Aceptación**: por A, elegimos el candidato B con mayor score. Pero exigimos `score ≥ min_score` y un margen `score_top1 − score_top2 ≥ margin`. Si no, se queda sin match (o pasa al árbitro LLM si está activo).
+**Acceptance**: per A, we pick the B candidate with the highest score. But we require `score >= min_score` and a margin `score_top1 - score_top2 >= margin`. Otherwise the row stays unmatched (or goes to the LLM arbiter if active).
 
-### Etapa 9 — Tie-break para duplicados de B
+### Stage 9 — Tie-break for B duplicates
 
-B tiene 2.796 grupos duplicate-like. Cuando dos B sobreviven con score parecido para el mismo A:
+B has 2,796 duplicate-like groups. When two B candidates survive with similar scores for the same A:
 
-1. Match exacto de size + pack.
-2. Match de form / flavor / organic / storage.
-3. Mayor metadata richness (`ingredients`, `tags`, profundidad de `category`).
-4. `item_id` estable como tie-break determinístico.
+1. Exact size + pack match.
+2. Form / flavor / organic / storage match.
+3. Greater metadata richness (`ingredients`, `tags`, depth of `category`).
+4. Stable `item_id` as a deterministic final tie-break.
 
-Nunca elegir entre 8 / 15 / 29 oz por puntaje léxico solo.
+Never pick between 8 / 15 / 29 oz on lexical score alone.
 
-### Etapa 10 — Output + auditoría + validación dura
+### Stage 10 — Output + audit + hard validation
 
-Generamos:
+We generate:
 
-1. **`matches.csv`** (deliverable principal, dos columnas):
+1. **`matches.csv`** (primary deliverable, two columns):
    ```csv
    item_id_A,item_id_B
    2197626,92544
    1929544,105624
    ```
-2. **`matches_audit.csv`** (extra, para defender en interview): score, source, top1_top2_margin, llm_confidence, reason, A_name, B_name.
-3. **`README.md`**: pipeline, métricas, threshold, sample eval.
+2. **`matches_audit.csv`** (extra, for defending the work in interview): score, source, top1_top2_margin, llm_confidence, reason, A_name, B_name.
+3. **`README.md`**: pipeline, metrics, threshold, sample eval.
 
-**Antes de declarar el run válido, corremos un smoke test**:
+**Before declaring the run valid, we run a smoke test**:
 
-- Header exacto `item_id_A,item_id_B`.
-- Todos los `item_id_A` y `item_id_B` matchean `^\d+$` y existen en los sets numéricos originales (las filas en cuarentena **no pueden aparecer**).
-- **No hay duplicados de `item_id_A`** (un best match por A).
-- Hay al menos 4.000 filas.
-- Los ejemplos del PDF resuelven bien: A `2197626` → B `92544`, A `1929544` → B `105624` (la **de 8 oz**, no la variante de 15 oz ni la de 29 oz).
+- Exact header `item_id_A,item_id_B`.
+- Every `item_id_A` and `item_id_B` matches `^\d+$` and exists in the original numeric sets (quarantined rows **must not appear**).
+- **No duplicate `item_id_A`** (one best match per A).
+- At least 4,000 rows.
+- The PDF examples resolve correctly: A `2197626` -> B `92544`, A `1929544` -> B `105624` (the **8 oz one**, not the 15 oz or 29 oz variants).
 
-### Etapa 11 — LLM como árbitro (opcional)
+### Stage 11 — LLM as arbiter (optional, off by default)
 
-**Misión**: usar GPT-5 nano para resolver casos donde el deterministic score no es claro.
+**Mission**: use GPT-5.4 nano to resolve cases where the deterministic score landed in a specific gray band. **It was not used to produce the shipped `matches.csv`**; the arbiter is implemented and tested but opt-in via `--use-llm-arbiter`.
 
-**Cuándo lo llamamos**:
+**When it kicks in (when active)**:
 
-- Score top-1 en zona gris.
-- Margen pequeño entre top-1 y top-2.
-- A con `brand_blank` o `brand_inferred` y múltiples candidatos B plausibles.
-- Private-label cross-store con score moderado.
-- Fresh/loose sin size confiable.
+- Rows with `decision=below_threshold` whose score falls in `[0.65, 0.75)` (a fixed band defined in `pipeline.py`: `LLM_RESCUE_SCORE_LOW=0.65`, `LLM_RESCUE_SCORE_HIGH=0.75`).
 
-**Cuándo NO**:
+**When it NEVER kicks in**:
 
-- Score alto y margen grande → aceptar sin LLM.
-- Score muy bajo → rechazar sin LLM.
-- Único candidato post hard rules → aceptar sin LLM.
+- `rejected_by_rule` rows (the LLM cannot override hard rules; they are never offered).
+- `accepted` rows (already cleared the threshold; never offered).
+- `no_candidates` rows.
+- `below_threshold` rows with score outside `[0.65, 0.75)`.
 
-**Optimizaciones técnicas**:
+**Two-pass within a single run**:
 
-- **Cache local**: si la misma decisión se repite, no la pedimos de nuevo.
-- **Async + Semaphore**: varias consultas en paralelo, respetando rate limits.
-- **Retry con backoff exponencial** en 429/5xx.
-- **Hard rules ganan**: el LLM no puede aceptar un par que viola una regla dura.
-- **Credenciales**: se cargan desde el archivo de credenciales sin loguearse.
+1. **`collect`**: the main pipeline loop registers each in-band candidate. No network.
+2. **`commit`** (after the loop): sort by score DESC, apply a per-group cap `max(50, max_calls // n_groups)`, and iterate. Cache hits are free. Cache misses only call the API while `api_calls_made < max_calls`.
 
-Costo estimado si se activa: **menos de $2 USD** total con ~5.000 calls.
+**Technical guarantees**:
 
----
-
-## 7. ¿Cómo sabemos si funciona? (evaluación)
-
-No hay ground truth completo, así que **estimamos calidad** con un sample manual.
-
-### Mini-eval manual de 50 pares
-
-1. Después del primer run, sampleamos 50 pares random del `matches.csv`.
-2. Yo (Julian) los evalúo a mano: ¿correcto, incorrecto, parcial?
-3. Calculamos precision estimada.
-
-También sampleamos 30 "near-misses" (pares con score gris que rechazamos) para ver si perdimos buenos.
-
-### Precision vs Recall
-
-- **Precision**: de los matches que dije, ¿qué % son correctos?
-- **Recall**: de los matches reales que existen, ¿qué % encontré?
-
-Hay un **trade-off**: subir threshold → más precision, menos recall. Bajarlo → menos precision, más recall.
-
-**Nuestra estrategia**: precision-first. Apuntamos a precision alta aunque eso signifique recall menor. Razón: en pricing real, un match falso es peor que un match faltante.
+- **Local cache** at `.cache/llm_arbiter.jsonl` (gitignored). Re-runs serve cache for free.
+- **Strict JSON parsing**: confidence outside `[0, 1]`, NaN, Infinity, missing field, or wrong type -> no rescue. No clamping.
+- **Fail-closed**: API exception, deployment down, exhausted budget -> no rescue; the deterministic decision stands.
+- **Hard rules win by construction**: the arbiter never sees rows the hard rules rejected.
+- **Credentials**: loaded from `~/Downloads/openai_creds.yaml` (or `--llm-creds PATH`) without ever being logged. `api_key` lives in a `field(repr=False)` slot and never appears in `__repr__`, prompts, or cache.
+- **Real smoke test executed** (1 call, 2026-05-04): `latency_s=2.40`, `confidence=0.95`, schema valid. Cost $~0. The full budget (1000 calls default) is available for the reviewer.
 
 ---
 
-## 8. ¿Cuánto cuesta y cuánto tarda?
+## 7. How do we know if it works? (evaluation)
 
-| Recurso | Cantidad |
+There is no full ground truth, so we **estimate quality** with a stratified sample and we validate the output contract with automated tests.
+
+### Phase 10B stratified sample (92 rows)
+
+`scripts/sample_eval.py --mode phase10b` took 92 rows from an initial "recall-heavy" run (16,218 rows at `--min-score 0.55`) and distributed them across buckets:
+
+- 6 score buckets (`score_0.55_0.60`, ..., `score_ge_0.80`), round-robin per `matchable_group` so pantry does not eat all the slots.
+- Oversample of suspicious groups restricted to `score < 0.70`: `household`, `frozen`, `pantry`, `kitchen_home`, `seafood`.
+- `private_label_cross_store` bucket: `A.is_private_label=True`, score in `[0.55, 0.80)`.
+- The 2 PDF rows as `pdf_regression` (they do not count toward precision; they are output-contract gates).
+
+The 92 rows were labeled in a **preliminary AI-assisted pass (Codex)**, not a human pass. That is why the numbers below are **provisional** until a human review, and they are explicitly tagged "provisional" in `eval/manual_eval_phase10b.md` and `eval/group_breakdown.md`. The sampler preserves human edits across re-runs.
+
+### Cumulative precision (and why we chose `min_score=0.75`)
+
+| Cumulative threshold | correct | wrong | partial | est_precision (provisional) |
+|:---|:---:|:---:|:---:|:---:|
+| score >= 0.65 | 36 | 8 | 8 | 0.692 |
+| score >= 0.70 | 31 | 4 | 4 | 0.795 |
+| **score >= 0.75 (shipped)** | **19** | **0** | **1** | **0.950** |
+| score >= 0.80 | 7 | 0 | 1 | 0.875 |
+
+The jump from 0.795 to 0.950 when raising the cut from 0.70 to 0.75 confirmed that the 0.55-0.75 band carried most of the false positives. Raising further to 0.80 already starts losing PDF rows (the Chobani example score=0.797 would not clear) and would fall below the 4,000 floor.
+
+### Precision vs Recall — the decision
+
+- **Precision**: of the matches I declared, what % are correct?
+- **Recall**: of the real matches that exist, what % did I find?
+
+There is a **trade-off**: raising threshold -> more precision, less recall. Lowering it -> less precision, more recall.
+
+**Chosen strategy**: precision-first with a 0.75 floor. Keeps cumulative precision ~0.95 on the sample, clears 4,394 rows (over the 4,000 floor), and both PDF rows are accepted. In real pricing, a false match is worse than a missing match.
+
+---
+
+## 8. How much does it cost and how long does it take? (real numbers)
+
+| Resource | Real value |
 |---|---|
-| Tu computadora (CPU) | < 60 min end-to-end |
-| OpenAI API (si se activa el árbitro) | < $2 USD |
-| RAM | ~1–2 GB pico (índices TF-IDF) |
-| Disco | ~250 MB |
-| Internet | ~5 MB descarga (1 vez) + LLM calls si se activa |
+| Your laptop (CPU) | well under a minute end-to-end |
+| OpenAI API | **$0** (the arbiter was not used to produce the output) |
+| LLM smoke test (1 call) | 2.40 s, $~0, confidence=0.95 |
+| RAM | ~1-2 GB peak (TF-IDF indexes over 55k B items) |
+| Disk | ~250 MB (CSVs in Downloads, not copied into the repo) |
+| Internet | ~0 (no network needed for the deterministic core) |
 
-**Comparación cualitativa con alternativas** (orden de magnitud, no resultados medidos; las cifras finales se reportan después de correr el pipeline y el eval manual):
+**Qualitative comparison with alternatives** (conceptual reading of approaches, not measured numbers):
 
-| Approach | Lectura cualitativa |
+| Approach | Reading |
 |---|---|
-| Solo fuzzy / Levenshtein | Rápido y gratis, pero alto riesgo de falsos positivos en paráfrasis y en duplicados por size. No es viable como única señal. |
-| BM25 con brand incluida (sin reglas) | El probe del repo lo evidenció: en private label colapsa por trampas léxicas (`Great Value` → `Great Lakes`, `Great Regular Flavor`). Útil sólo como diagnóstico secundario. |
-| **TF-IDF word + char + hard rules (este plan)** | **Recomendado para el primer deliverable**: el probe rankeó ambos ejemplos del PDF en #1, y las hard rules cubren los traps de size/pack/PL. |
-| + GPT-5 nano en zona gris (opcional) | Capa adicional para mejorar recall en casos grises. Costo y latencia acotados por el cap de calls. Valor real a confirmar tras el primer run. |
-| LLM en todos los candidatos post-retrieval | Conceptualmente posible, pero costo y latencia escalan con el número de pares; sin reglas duras igual no resuelve los traps de size. |
-| LLM-first sobre el producto cartesiano completo | Inviable: con casi 13 mil millones de pares, ningún presupuesto razonable de costo o tiempo lo cubre. Útil sólo como ejemplo pedagógico de por qué hace falta retrieval. |
+| Fuzzy / Levenshtein only | Fast and free, but high false-positive risk on paraphrase and on size duplicates. Not viable as a sole signal. |
+| BM25 with brand included (no rules) | The repo probe showed it: in private label it collapses on lexical traps (`Great Value` -> `Great Lakes`, `Great Regular Flavor`). Useful only as a secondary diagnostic. |
+| **TF-IDF word + char + hard rules (what we ship)** | **The deterministic core**: the probe ranked both PDF examples at #1, the hard rules cover size/pack/PL traps, and cumulative precision at the 0.75 floor is 0.95 on the labeled sample. |
+| + GPT-5.4 nano in the gray zone (optional, off by default) | Implemented and tested, but not used to produce the shipped `matches.csv`. Activatable with `--use-llm-arbiter`; full budget available for the reviewer. |
+| LLM on every post-retrieval candidate | Conceptually possible, but cost and latency scale with the number of pairs; without hard rules it still does not solve the size traps. |
+| LLM-first over the full Cartesian product | Infeasible: with almost 13 billion pairs, no reasonable cost or time budget covers it. |
 
 ---
 
-## 9. Las decisiones importantes (y por qué las tomamos así)
+## 9. The important decisions (and why we made them this way)
 
-### Decisión 1: precision-first (no maximizar cantidad)
+### Decision 1: precision-first (do not maximize quantity)
 
-El PDF dice "single closest match" — no dice "todos los matches posibles". Pide ≥ 4.000 como **piso**. Defender 5–7k buenos en una entrevista es más fácil que defender 12k con basura. En pricing real, un match falso es peor que un match faltante.
+The PDF says "single closest match" — it does not say "every possible match". It asks for >= 4,000 as a **floor**. We defend **4,394 good ones** with provisional cumulative precision 0.95 on the labeled sample, instead of 16,218 with half of them garbage (the initial recall-heavy run was retired for exactly that reason). In real pricing, a false match is worse than a missing match.
 
-### Decisión 2: deterministic-first, no LLM-first
+### Decision 2: deterministic-first, not LLM-first
 
-12.946.275.684 pares hace inviable comparar todo. Aún reduciendo, el LLM **igual necesita** retrieval, normalización y reglas duras antes para no errar en obvios (8 oz vs 15 oz tomato sauce). Reglas son gratis y precisas; LLM aporta criterio donde reglas no llegan.
+12,946,275,684 pairs makes it infeasible to compare them all. Even after reducing, the LLM **still needs** retrieval, normalization, and hard rules first to avoid getting obvious things wrong (8 oz vs 15 oz tomato sauce). Rules are free and precise; LLM contributes judgment where rules cannot reach.
 
-### Decisión 3: TF-IDF word + char como motor de retrieval (no BM25/FAISS/RRF)
+### Decision 3: TF-IDF word + char as the retrieval engine (not BM25/FAISS/RRF)
 
-Lo probamos en `scripts/retrieval_probe.py` sobre las 55.516 filas reales:
+We tested it in `scripts/retrieval_probe.py` over the real 55,516 rows:
 
-- TF-IDF word + char rankea ambos ejemplos del PDF en **#1**.
-- BM25 con marca incluida hunde a `Great Value Organic Tomato Sauce 8 oz` al **rank 5** (top-1: `Colgate Fluoride Toothpaste, Great Regular Flavor, 3 Value Pack`).
-- `Great Value Provolone` → BM25 manda `Great Lakes Provolone Cheese` al top-1.
+- TF-IDF word + char ranks both PDF examples at **#1**.
+- BM25 with brand included sinks `Great Value Organic Tomato Sauce 8 oz` to **rank 5** (top-1: `Colgate Fluoride Toothpaste, Great Regular Flavor, 3 Value Pack`).
+- `Great Value Provolone` -> BM25 sends `Great Lakes Provolone Cheese` to top-1.
 
-BM25 queda como diagnóstico secundario. Embeddings/FAISS quedan como capa opcional posterior.
+BM25 stayed as a diagnostic from the retrieval probe. Embeddings/FAISS are not part of the shipped pipeline and are not needed: the deterministic core with TF-IDF word+char already delivers 4,394 matches with provisional precision ~0.95 at the 0.75 floor.
 
-### Decisión 4: validación numérica de `item_id` desde la primera etapa
+### Decision 4: numeric `item_id` validation from the very first stage
 
-Walmart trae 5 filas con `item_id` no numérico (columnas corridas). Si las dejamos pasar, contaminamos retrieval, scoring, **y** el output final. La regla `^\d+$` en Stage 1 + cuarentena cierra esa puerta de entrada.
+Walmart ships 5 rows with non-numeric `item_id` (shifted columns). If we let them through, we contaminate retrieval, scoring, **and** the final output. The `^\d+$` rule in Stage 1 + quarantine closes that entry door.
 
-### Decisión 5: descartar UPC
+### Decision 5: drop UPC
 
-A no tiene UPC. B tiene 681 (1.23%). No es viable como join key. El problema es 100% entity resolution.
+A has no UPC. B has 681 (1.23%). Not viable as a join key. The problem is 100% entity resolution.
 
-### Decisión 6: scope filter (descartar Toys, Clothing, etc.)
+### Decision 6: scope filter (drop Toys, Clothing, etc.)
 
-Wegmans no vende picture frames. Buscarles match es 100% trabajo perdido. Filtrarlos antes ahorra ≥ 48.007 filas de A que no tienen contraparte plausible.
+Wegmans does not sell picture frames. Searching for matches there is 100% wasted work. Filtering them up front saves >= 48,007 A rows that have no plausible counterpart.
 
-### Decisión 7: GPT-5 nano selectivo, opcional, sin override de hard rules
+### Decision 7: GPT-5.4 nano selective, optional, off by default
 
-El LLM se reserva para zona gris. **No** puede aceptar pares que las reglas duras rechazan (size incompatible, national↔PL, group incompatible). Esto blinda la precision y hace el output reproducible aún sin LLM.
+The LLM is reserved for a specific gray band (`below_threshold` with score `[0.65, 0.75)`). It **cannot** accept pairs that the hard rules reject (incompatible size, national<->PL, incompatible group) because the arbiter never receives `rejected_by_rule` rows. Nor can it change rows already `accepted` above 0.75. This protects precision and makes the output reproducible even without an LLM. The shipped `matches.csv` was generated **without** calling the API.
 
 ---
 
-## 10. Mini glosario
+## 10. Mini glossary
 
-| Término | Significado en una frase |
+| Term | Meaning in one sentence |
 |---|---|
-| **UPC** | Código universal de producto (12 dígitos), el "DNI" del producto. |
-| **Entity resolution** | Tarea de matchear records de dos fuentes que se refieren a la misma cosa real, sin clave de join. |
-| **National brand** | Marca presente en muchos retailers (Coca-Cola, Chobani). |
-| **Private label** | Marca propia de un retailer (Great Value de Walmart, Wegmans-brand de Wegmans). |
-| **TF-IDF** | Ranking lexical clásico (term frequency × inverse document frequency). |
-| **TF-IDF word + char n-grams** | Variante que combina vectorizers de palabras y de secuencias de caracteres; robusta a typos. |
-| **BM25** | Otro ranking lexical, primo de TF-IDF. Útil como diagnóstico, no como motor primario en este dataset. |
-| **Embeddings** | Vectores que representan texto con similitud semántica. Diferidos acá. |
-| **FAISS** | Librería para búsqueda vectorial rápida. Diferida acá. |
-| **GPT-5 nano** | Modelo OpenAI provisto por BetterBasket, usado como árbitro opcional. |
-| **`matchable_group`** | Taxonomía intermedia compartida entre Walmart y Wegmans para comparar categorías. |
-| **Hard rule** | Regla que rechaza un candidato sí o sí (sin importar el score). |
-| **Threshold** | Umbral mínimo de score para aceptar un match. |
-| **Margin** | Diferencia mínima entre top-1 y top-2 para aceptar el match. |
-| **Precision** | De lo que entregué, ¿qué % es correcto? |
-| **Recall** | De lo que existe, ¿qué % encontré? |
-| **Cuarentena** | Apartar filas malformadas (las 5 con `item_id` no numérico) antes de procesar. |
-| **Audit trail** | Registro de "cómo se llegó a cada decisión" (`matches_audit.csv`). |
+| **UPC** | Universal Product Code (12 digits), the product's "DNI". |
+| **Entity resolution** | Task of matching records from two sources that refer to the same real thing, without a join key. |
+| **National brand** | Brand present at many retailers (Coca-Cola, Chobani). |
+| **Private label** | A retailer's own brand (Great Value at Walmart, Wegmans-brand at Wegmans). |
+| **TF-IDF** | Classic lexical ranking (term frequency x inverse document frequency). |
+| **TF-IDF word + char n-grams** | Variant that combines word and character-sequence vectorizers; robust to typos. |
+| **BM25** | Another lexical ranking, cousin of TF-IDF. Useful as a diagnostic, not as the primary engine on this dataset. |
+| **Embeddings** | Vectors that represent text with semantic similarity. Not used in this pipeline. |
+| **FAISS** | Library for fast vector search. Not used in this pipeline. |
+| **GPT-5.4 nano** | OpenAI model provided by BetterBasket, implemented as an optional arbiter (off by default). The shipped `matches.csv` was generated without LLM. |
+| **`matchable_group`** | Shared intermediate taxonomy between Walmart and Wegmans for comparing categories. |
+| **Hard rule** | Rule that rejects a candidate no matter what (regardless of score). |
+| **Threshold** | Minimum score required to accept a match. |
+| **Margin** | Minimum gap between top-1 and top-2 required to accept a match. |
+| **Precision** | Of what I delivered, what % is correct? |
+| **Recall** | Of what exists, what % did I find? |
+| **Quarantine** | Setting aside malformed rows (the 5 with non-numeric `item_id`) before processing. |
+| **Audit trail** | Record of "how each decision was reached" (`matches_audit.csv`). |
 
 ---
 
-## 11. Si querés profundizar más
+## 11. If you want to dig deeper
 
-- **`solution.md`** — versión técnica completa con fundamentación profunda, fórmulas, alternativas descartadas con razón.
-- **`app.md`** — vista visual con diagramas ASCII.
-- **`docs/dataset_audit.md`** — auditoría real de los CSVs, fuente de verdad de los números.
-- **`docs/algorithm_recommendation.md`** — la receta del algoritmo, fuente de verdad del plan.
-- **`scripts/audit_data.py`** y **`scripts/retrieval_probe.py`** — los scripts reproducibles que generaron las dos fuentes anteriores.
+- **`solution.md`** — full technical version with deep rationale, formulas, and discarded alternatives with reasons.
+- **`app.md`** — visual view with ASCII diagrams.
+- **`docs/dataset_audit.md`** — the actual audit of the CSVs, the source of truth for the numbers.
+- **`docs/algorithm_recommendation.md`** — the algorithm recipe, the source of truth for the plan.
+- **`scripts/audit_data.py`** and **`scripts/retrieval_probe.py`** — the reproducible scripts that produced the two sources above.
 
 ---
 
-**Si después de leer esto algo no te queda claro**, mandame qué parte y la reescribo. La idea es que cualquier persona que lea este archivo pueda entender qué hace el pipeline sin background en ML.
+**If after reading this something is still unclear**, send me which part and I'll rewrite it. The idea is that anyone reading this file can understand what the pipeline does without an ML background.
